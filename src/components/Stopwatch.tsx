@@ -44,12 +44,20 @@ export default function Stopwatch({
   taskRecords,
 }: StopwatchProps) {
   const [time, setTime] = useState(0);
+  // Initialize isRunning to false by default to avoid hydration issues
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [todayTotal, setTodayTotal] = useState(0);
+  // Track if component has mounted to avoid hydration issues
+  const [hasMounted, setHasMounted] = useState(false);
 
   // Update document title with timer state
   useDocumentTitle(time, isRunning, activeTask?.name);
+
+  // Set hasMounted to true after component mounts
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // Calculate today's total time spent
   useEffect(() => {
@@ -75,6 +83,9 @@ export default function Stopwatch({
   }, [taskRecords]);
 
   useEffect(() => {
+    // Only run this effect on the client after mounting to avoid hydration issues
+    if (!hasMounted) return;
+
     if (isRunning) {
       intervalRef.current = setInterval(() => {
         setTime((prevTime) => prevTime + 1000); // Increment by 1 second
@@ -88,20 +99,42 @@ export default function Stopwatch({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning]);
+  }, [isRunning, hasMounted]);
 
   // Reset timer when active task changes
   useEffect(() => {
+    // Only run this effect on the client after mounting to avoid hydration issues
+    if (!hasMounted) return;
+
     if (!isRunning) {
       setTime(0);
     }
-  }, [activeTask, isRunning]);
+  }, [activeTask, isRunning, hasMounted]);
 
   const toggleTimer = async () => {
     if (!activeTask) return;
 
     try {
       if (isRunning) {
+        // Check if there's actually an active record for this task before stopping
+        const hasActiveRecord = taskRecords?.some(
+          (record) => record.taskId === activeTask.id && record.endedAt === null
+        );
+
+        if (!hasActiveRecord) {
+          console.warn(
+            "No active record found for this task, but isRunning is true"
+          );
+          // Reset the running state without calling the API
+          setIsRunning(false);
+          toast({
+            title: "State corrected",
+            description: "The timer state has been corrected.",
+            variant: "default",
+          });
+          return;
+        }
+
         await onStopTracking(activeTask.id);
         toast({
           title: "Timer paused",
@@ -136,6 +169,9 @@ export default function Stopwatch({
 
   // Calculate time since active record started
   useEffect(() => {
+    // Only run this effect on the client after mounting to avoid hydration issues
+    if (!hasMounted) return;
+
     if (activeRecord && !isRunning) {
       setIsRunning(true);
       const normalizedStartTime =
@@ -144,7 +180,7 @@ export default function Stopwatch({
       // Ensure we don't set negative time
       setTime(Math.max(0, elapsed));
     }
-  }, [activeRecord, isRunning]);
+  }, [activeRecord, isRunning, hasMounted]);
 
   // Debug logging
   useEffect(() => {
