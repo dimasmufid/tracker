@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Stopwatch from "./Stopwatch";
 import TaskList from "./TaskList";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -8,6 +8,7 @@ import { EditTaskDialog } from "./EditTaskDialog";
 import { startTaskTracking, stopTaskTracking } from "@/services/taskService";
 import { normalizeTimestamp } from "@/utils/timeUtils";
 import * as z from "zod";
+import { startOfDay } from "date-fns";
 
 // Define types that match the database schema
 interface DbTask {
@@ -67,6 +68,7 @@ interface TaskTrackerProps {
   initialProjects: DbProject[];
   initialTaskRecords: DbTaskRecord[];
   initialActiveTask: DbTask | null;
+  selectedDate?: Date;
 }
 
 // Form schema for adding a task
@@ -81,6 +83,7 @@ export default function TaskTracker({
   initialProjects,
   initialTaskRecords,
   initialActiveTask,
+  selectedDate,
 }: TaskTrackerProps) {
   // Convert all dates to timestamps for client-side use
   const [tasks, setTasks] = useState<Task[]>(() =>
@@ -139,6 +142,21 @@ export default function TaskTracker({
       console.log("First task record after normalization:", taskRecords[0]);
     }
   }, [taskRecords]);
+
+  // Filter tasks based on the selected date
+  const filteredTasks = useMemo(() => {
+    if (!selectedDate) return tasks;
+
+    const startOfSelectedDay = startOfDay(selectedDate).getTime();
+    const endOfSelectedDay = startOfSelectedDay + 24 * 60 * 60 * 1000 - 1;
+
+    return tasks.filter((task) => {
+      const taskCreatedAt = task.createdAt;
+      return (
+        taskCreatedAt >= startOfSelectedDay && taskCreatedAt <= endOfSelectedDay
+      );
+    });
+  }, [tasks, selectedDate]);
 
   // Handle task selection
   const handleSelectTask = (taskId: number) => {
@@ -285,7 +303,7 @@ export default function TaskTracker({
       <div className="w-full md:w-1/2 p-2 md:p-4 bg-card">
         <div className="w-full max-w-2xl mx-auto">
           <TaskList
-            tasks={tasks}
+            tasks={filteredTasks}
             projects={projects}
             activities={activities}
             taskRecords={taskRecords}

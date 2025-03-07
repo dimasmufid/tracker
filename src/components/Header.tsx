@@ -54,6 +54,8 @@ interface HeaderProps {
     activityId: number,
     data: ActivityFormValues
   ) => Promise<void>;
+  onDateChange: (date: Date) => void;
+  selectedDate?: Date;
 }
 
 export default function Header({
@@ -63,6 +65,8 @@ export default function Header({
   onEditProject,
   onAddActivity,
   onEditActivity,
+  onDateChange,
+  selectedDate,
 }: HeaderProps) {
   const router = useRouter();
 
@@ -143,7 +147,10 @@ export default function Header({
 
         {/* main actions */}
         <div className="flex flex-row items-center gap-2">
-          <DropdownDay />
+          <DropdownDay
+            selectedDate={selectedDate}
+            onDateChange={onDateChange}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="ml-auto">
