@@ -42,6 +42,7 @@ type TaskListProps = {
   taskRecords: TaskRecord[];
   activeTaskId: number | null;
   onSelectTask: (taskId: number) => void;
+  onClearSelection?: () => void;
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
 };
@@ -53,6 +54,7 @@ export default function TaskList({
   taskRecords,
   activeTaskId,
   onSelectTask,
+  onClearSelection,
   onAddTask,
   onEditTask,
 }: TaskListProps) {
@@ -184,6 +186,7 @@ export default function TaskList({
                             task={task}
                             isActive={task.id === activeTaskId}
                             onSelect={onSelectTask}
+                            onClearSelection={onClearSelection}
                             onEdit={onEditTask}
                             activityName={getActivityName(task.activityId)}
                             totalTime={taskTotalTime}

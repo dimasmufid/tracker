@@ -167,6 +167,12 @@ export default function TaskTracker({
     }
   };
 
+  // Clear active task
+  const handleClearActiveTask = () => {
+    setActiveTask(null);
+    setActiveTaskId(null);
+  };
+
   // Start tracking a task
   const handleStartTracking = async (taskId: number) => {
     try {
@@ -296,6 +302,7 @@ export default function TaskTracker({
             activeTask={activeTask}
             onStartTracking={handleStartTracking}
             onStopTracking={handleStopTracking}
+            onClearTask={handleClearActiveTask}
             taskRecords={taskRecords}
           />
         </div>
@@ -309,6 +316,7 @@ export default function TaskTracker({
             taskRecords={taskRecords}
             activeTaskId={activeTaskId}
             onSelectTask={handleSelectTask}
+            onClearSelection={handleClearActiveTask}
             onAddTask={() => setIsAddTaskDialogOpen(true)}
             onEditTask={handleEditTask}
           />

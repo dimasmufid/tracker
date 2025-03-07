@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { TimerResetIcon, ListTodoIcon } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { TimerResetIcon, ListTodoIcon, XCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -29,6 +29,7 @@ interface StopwatchProps {
   activeTask: Task | null;
   onStartTracking: (taskId: number) => Promise<void>;
   onStopTracking: (taskId: number) => Promise<void>;
+  onClearTask?: () => void;
   taskRecords: TaskRecord[];
 }
 
@@ -36,6 +37,7 @@ export default function Stopwatch({
   activeTask,
   onStartTracking,
   onStopTracking,
+  onClearTask,
   taskRecords,
 }: StopwatchProps) {
   const [time, setTime] = useState(0);
@@ -81,6 +83,13 @@ export default function Stopwatch({
       }
     };
   }, [isRunning]);
+
+  // Reset timer when active task changes
+  useEffect(() => {
+    if (!isRunning) {
+      setTime(0);
+    }
+  }, [activeTask, isRunning]);
 
   const toggleTimer = async () => {
     if (!activeTask) return;
@@ -141,6 +150,15 @@ export default function Stopwatch({
     }
   }, [taskRecords]);
 
+  // Filter task records based on active task
+  const filteredTaskRecords = useMemo(() => {
+    if (!activeTask) {
+      return []; // Return empty array when no task is selected
+    }
+    // Only show records for the active task
+    return taskRecords.filter((record) => record.taskId === activeTask.id);
+  }, [activeTask, taskRecords]);
+
   return (
     <div className="timer-container active flex flex-col h-full">
       <div className="flex flex-col items-center justify-start gap-6 p-4 pt-8 md:pt-12">
@@ -148,21 +166,46 @@ export default function Stopwatch({
           {formatDuration(time)}
         </div>
 
-        <Button
-          onClick={toggleTimer}
-          disabled={!activeTask}
-          size="lg"
-          className="timer-button rounded-md px-12 py-6 text-lg font-medium transition-all duration-300 hover:scale-105 shadow-md border-none min-w-[180px] uppercase"
-        >
-          {isRunning ? "PAUSE" : "START"}
-        </Button>
+        <div className="flex flex-col items-center gap-2">
+          <Button
+            onClick={toggleTimer}
+            disabled={!activeTask}
+            size="lg"
+            className="timer-button rounded-md px-12 py-6 text-lg font-medium transition-all duration-300 hover:scale-105 shadow-md border-none min-w-[180px] uppercase"
+          >
+            {isRunning ? "PAUSE" : "START"}
+          </Button>
+
+          {activeTask && onClearTask && !isRunning && (
+            <Button
+              onClick={onClearTask}
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <XCircleIcon className="w-3 h-3" />
+              Clear selection
+            </Button>
+          )}
+        </div>
 
         <div className="text-sm mt-2 opacity-80 text-center">
-          #{activeTask ? activeTask.id : "0"} -{" "}
-          {activeTask ? activeTask.name : "No task selected"}
-          <div className="mt-1 text-xs opacity-70">
-            {isRunning ? "Time to focus!" : "Select a task to start tracking"}
-          </div>
+          {activeTask ? (
+            <>
+              <span className="font-medium">#{activeTask.id}</span> -{" "}
+              {activeTask.name}
+              <div className="mt-1 text-xs opacity-70">
+                {isRunning ? "Time to focus!" : "Ready to start tracking"}
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="text-muted-foreground">No task selected</span>
+              <div className="mt-1 text-xs opacity-70">
+                Select a task from the list to start tracking
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -178,33 +221,45 @@ export default function Stopwatch({
         <div className="mt-3">
           <h3 className="text-sm font-medium mb-2 opacity-80 flex items-center gap-2">
             <ListTodoIcon className="w-4 h-4" />
-            Recent sessions
+            {activeTask ? "Task sessions" : "Recent sessions"}
           </h3>
           <div className="space-y-1 max-h-[200px] overflow-y-auto">
-            {taskRecords?.slice(0, 5).map((record) => {
-              const normalizedStartTime =
-                normalizeTimestamp(record.startedAt) || 0;
-              const duration = calculateDuration(
-                record.startedAt,
-                record.endedAt
-              );
+            {activeTask ? (
+              filteredTaskRecords.length > 0 ? (
+                filteredTaskRecords.slice(0, 5).map((record) => {
+                  const normalizedStartTime =
+                    normalizeTimestamp(record.startedAt) || 0;
+                  const duration = calculateDuration(
+                    record.startedAt,
+                    record.endedAt
+                  );
 
-              return (
-                <div
-                  key={record.id}
-                  className="flex justify-between items-center text-sm p-2 bg-accent/30 rounded"
-                >
-                  <span>
-                    {formatDistanceToNow(new Date(normalizedStartTime), {
-                      addSuffix: true,
-                    })}
-                  </span>
-                  <span className="font-medium">
-                    {formatDuration(duration)}
-                  </span>
+                  return (
+                    <div
+                      key={record.id}
+                      className="flex justify-between items-center text-sm p-2 bg-accent/30 rounded"
+                    >
+                      <span>
+                        {formatDistanceToNow(new Date(normalizedStartTime), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                      <span className="font-medium">
+                        {formatDuration(duration)}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-sm p-2 text-muted-foreground">
+                  No sessions recorded for this task yet
                 </div>
-              );
-            })}
+              )
+            ) : (
+              <div className="text-sm p-2 text-muted-foreground">
+                Select a task to view its sessions
+              </div>
+            )}
           </div>
         </div>
       </div>

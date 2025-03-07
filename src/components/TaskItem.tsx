@@ -7,6 +7,7 @@ import {
   TagIcon,
   PencilIcon,
   ClockIcon,
+  XCircleIcon,
 } from "lucide-react";
 import { formatDuration } from "@/utils/timeUtils";
 
@@ -22,6 +23,7 @@ type TaskItemProps = {
   task: Task;
   isActive: boolean;
   onSelect: (taskId: number) => void;
+  onClearSelection?: () => void;
   onEdit: (task: Task) => void;
   activityName?: string;
   totalTime: number;
@@ -31,10 +33,19 @@ export default function TaskItem({
   task,
   isActive,
   onSelect,
+  onClearSelection,
   onEdit,
   activityName,
   totalTime,
 }: TaskItemProps) {
+  const handleTaskClick = () => {
+    if (isActive && onClearSelection) {
+      onClearSelection();
+    } else {
+      onSelect(task.id);
+    }
+  };
+
   return (
     <div
       className={`p-2 mb-1.5 rounded-md flex justify-between items-center cursor-pointer transition-all ${
@@ -42,7 +53,7 @@ export default function TaskItem({
           ? "bg-primary/10 border border-primary shadow-sm"
           : "bg-card border border-border hover:border-primary/30 hover:shadow-sm"
       }`}
-      onClick={() => onSelect(task.id)}
+      onClick={handleTaskClick}
     >
       <div className="flex flex-col">
         <div className="flex items-center">
@@ -83,22 +94,35 @@ export default function TaskItem({
           <PencilIcon className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="sr-only">Edit</span>
         </Button>
-        <Button
-          variant={isActive ? "default" : "ghost"}
-          size="sm"
-          className={
-            isActive
-              ? "bg-primary hover:bg-primary/90 text-primary-foreground h-7 px-2"
-              : "text-muted-foreground h-7 px-2"
-          }
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(task.id);
-          }}
-        >
-          <PlayIcon className="h-3.5 w-3.5" />
-          <span className="ml-1 text-xs">{isActive ? "Active" : "Start"}</span>
-        </Button>
+        {isActive ? (
+          <Button
+            variant="default"
+            size="sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground h-7 px-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onClearSelection) {
+                onClearSelection();
+              }
+            }}
+          >
+            <XCircleIcon className="h-3.5 w-3.5" />
+            <span className="ml-1 text-xs">Deselect</span>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground h-7 px-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(task.id);
+            }}
+          >
+            <PlayIcon className="h-3.5 w-3.5" />
+            <span className="ml-1 text-xs">Select</span>
+          </Button>
+        )}
       </div>
     </div>
   );
