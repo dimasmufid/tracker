@@ -5,6 +5,7 @@ const nextConfig = {
     return config;
   },
   serverExternalPackages: ["@libsql/client"],
+  output: "export",
 };
 
 export default nextConfig;
