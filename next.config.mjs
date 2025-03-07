@@ -4,8 +4,6 @@ const nextConfig = {
   webpack: (config) => {
     return config;
   },
-  serverExternalPackages: ["@libsql/client"],
-  output: "export",
 };
 
 export default nextConfig;
