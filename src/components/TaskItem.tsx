@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { PlayIcon, CheckCircleIcon, TagIcon, PencilIcon } from "lucide-react";
+import {
+  PlayIcon,
+  CheckCircleIcon,
+  TagIcon,
+  PencilIcon,
+  ClockIcon,
+} from "lucide-react";
+import { formatDuration } from "@/utils/timeUtils";
 
 type Task = {
   id: number;
@@ -17,6 +24,7 @@ type TaskItemProps = {
   onSelect: (taskId: number) => void;
   onEdit: (task: Task) => void;
   activityName?: string;
+  totalTime: number;
 };
 
 export default function TaskItem({
@@ -25,6 +33,7 @@ export default function TaskItem({
   onSelect,
   onEdit,
   activityName,
+  totalTime,
 }: TaskItemProps) {
   return (
     <div
@@ -48,12 +57,18 @@ export default function TaskItem({
             {task.name}
           </h3>
         </div>
-        {activityName && (
-          <div className="flex items-center ml-6 mt-1 text-xs text-muted-foreground">
-            <TagIcon className="h-3 w-3 mr-1" />
-            {activityName}
+        <div className="flex items-center ml-6 mt-1 gap-3">
+          {activityName && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <TagIcon className="h-3 w-3 mr-1" />
+              {activityName}
+            </div>
+          )}
+          <div className="flex items-center text-xs text-muted-foreground">
+            <ClockIcon className="h-3 w-3 mr-1" />
+            {formatDuration(totalTime)}
           </div>
-        )}
+        </div>
       </div>
       <div className="flex items-center gap-1">
         <Button

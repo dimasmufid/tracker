@@ -29,7 +29,7 @@ import {
 import { DropdownDay } from "./DropdownDay";
 import { ProjectDialog } from "./ProjectDialog";
 import { ActivityDialog } from "./ActivityDialog";
-import * as z from "zod";
+import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
 
 type Project = {
   id: number;
@@ -47,28 +47,14 @@ type Activity = {
 interface HeaderProps {
   projects: Project[];
   activities: Activity[];
-  onAddProject: (data: z.infer<typeof projectFormSchema>) => Promise<void>;
-  onEditProject: (
-    projectId: number,
-    data: z.infer<typeof projectFormSchema>
-  ) => Promise<void>;
-  onAddActivity: (data: z.infer<typeof activityFormSchema>) => Promise<void>;
+  onAddProject: (data: ProjectFormValues) => Promise<void>;
+  onEditProject: (projectId: number, data: ProjectFormValues) => Promise<void>;
+  onAddActivity: (data: ActivityFormValues) => Promise<void>;
   onEditActivity: (
     activityId: number,
-    data: z.infer<typeof activityFormSchema>
+    data: ActivityFormValues
   ) => Promise<void>;
 }
-
-// Form schemas
-const projectFormSchema = z.object({
-  name: z.string().min(2).max(50),
-  description: z.string().optional(),
-  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/),
-});
-
-const activityFormSchema = z.object({
-  name: z.string().min(2).max(50),
-});
 
 export default function Header({
   projects = [],
@@ -119,7 +105,7 @@ export default function Header({
   // Handle saving project
   const handleSaveProject = async (
     project: Project | null,
-    data: z.infer<typeof projectFormSchema>
+    data: ProjectFormValues
   ) => {
     if (projectDialogMode === "add") {
       await onAddProject(data);
@@ -133,7 +119,7 @@ export default function Header({
   // Handle saving activity
   const handleSaveActivity = async (
     activity: Activity | null,
-    data: z.infer<typeof activityFormSchema>
+    data: ActivityFormValues
   ) => {
     if (activityDialogMode === "add") {
       await onAddActivity(data);

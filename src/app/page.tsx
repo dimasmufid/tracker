@@ -6,7 +6,7 @@ import {
   getTaskRecords,
   getActiveTask,
 } from "@/services/taskService";
-import * as z from "zod";
+import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
 
 // Type definitions
 type Project = {
@@ -19,17 +19,6 @@ type Project = {
 
 export default async function Home() {
   console.log("Fetching data for home page...");
-
-  // Form schemas
-  const projectFormSchema = z.object({
-    name: z.string().min(2).max(50),
-    description: z.string().optional(),
-    color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/),
-  });
-
-  const activityFormSchema = z.object({
-    name: z.string().min(2).max(50),
-  });
 
   const tasks = await getTasks();
   const projects = await getProjects();
@@ -69,42 +58,32 @@ export default async function Home() {
 
   // These functions would normally interact with your backend
   // For now, they're just placeholders that will be handled client-side
-  const handleAddProject = async (data: z.infer<typeof projectFormSchema>) => {
+  const handleAddProject = async (data: ProjectFormValues) => {
     "use server";
-    // Validate the data
-    projectFormSchema.parse(data);
     console.log("Adding project:", data);
     // Implementation would go here
   };
 
   const handleEditProject = async (
     projectId: number,
-    data: z.infer<typeof projectFormSchema>
+    data: ProjectFormValues
   ) => {
     "use server";
-    // Validate the data
-    projectFormSchema.parse(data);
     console.log("Editing project:", projectId, data);
     // Implementation would go here
   };
 
-  const handleAddActivity = async (
-    data: z.infer<typeof activityFormSchema>
-  ) => {
+  const handleAddActivity = async (data: ActivityFormValues) => {
     "use server";
-    // Validate the data
-    activityFormSchema.parse(data);
     console.log("Adding activity:", data);
     // Implementation would go here
   };
 
   const handleEditActivity = async (
     activityId: number,
-    data: z.infer<typeof activityFormSchema>
+    data: ActivityFormValues
   ) => {
     "use server";
-    // Validate the data
-    activityFormSchema.parse(data);
     console.log("Editing activity:", activityId, data);
     // Implementation would go here
   };

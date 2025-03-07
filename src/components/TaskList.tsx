@@ -1,9 +1,11 @@
 "use client";
 
 import TaskItem from "./TaskItem";
-import { PlusCircleIcon, FolderIcon } from "lucide-react";
+import { PlusCircleIcon, FolderIcon, ClockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDuration, calculateDuration } from "@/utils/timeUtils";
+import { useMemo } from "react";
 
 type Task = {
   id: number;
@@ -26,10 +28,18 @@ type Activity = {
   name: string;
 };
 
+type TaskRecord = {
+  id: number;
+  taskId: number;
+  startedAt: number;
+  endedAt: number | null;
+};
+
 type TaskListProps = {
   tasks: Task[];
   projects: Project[];
   activities?: Activity[];
+  taskRecords: TaskRecord[];
   activeTaskId: number | null;
   onSelectTask: (taskId: number) => void;
   onAddTask: () => void;
@@ -40,25 +50,66 @@ export default function TaskList({
   tasks,
   projects,
   activities = [],
+  taskRecords,
   activeTaskId,
   onSelectTask,
   onAddTask,
   onEditTask,
 }: TaskListProps) {
+  // Memoize task records by task ID for efficient lookup
+  const taskRecordsByTaskId = useMemo(() => {
+    const recordMap: Record<number, TaskRecord[]> = {};
+
+    taskRecords.forEach((record) => {
+      if (!recordMap[record.taskId]) {
+        recordMap[record.taskId] = [];
+      }
+      recordMap[record.taskId].push(record);
+    });
+
+    return recordMap;
+  }, [taskRecords]);
+
   // Group tasks by project
-  const tasksByProject = tasks.reduce((acc, task) => {
-    const projectId = task.projectId;
-    if (!acc[projectId]) {
-      acc[projectId] = [];
-    }
-    acc[projectId].push(task);
-    return acc;
-  }, {} as Record<number, Task[]>);
+  const tasksByProject = useMemo(() => {
+    return tasks.reduce((acc, task) => {
+      const projectId = task.projectId;
+      if (!acc[projectId]) {
+        acc[projectId] = [];
+      }
+      acc[projectId].push(task);
+      return acc;
+    }, {} as Record<number, Task[]>);
+  }, [tasks]);
 
   // Get activity name by id
   const getActivityName = (activityId: number) => {
     const activity = activities.find((a) => a.id === activityId);
     return activity?.name || "No activity";
+  };
+
+  // Calculate total time for a task
+  const calculateTaskTotalTime = (taskId: number) => {
+    const taskRecordsForTask = taskRecordsByTaskId[taskId] || [];
+    let totalTime = 0;
+
+    taskRecordsForTask.forEach((record) => {
+      totalTime += calculateDuration(record.startedAt, record.endedAt);
+    });
+
+    return totalTime;
+  };
+
+  // Calculate total time for a project
+  const calculateProjectTotalTime = (projectId: number) => {
+    const tasksInProject = tasksByProject[projectId] || [];
+    let totalTime = 0;
+
+    tasksInProject.forEach((task) => {
+      totalTime += calculateTaskTotalTime(task.id);
+    });
+
+    return totalTime;
   };
 
   return (
@@ -89,48 +140,66 @@ export default function TaskList({
             </Button>
           </div>
         ) : (
-          projects.map((project) => (
-            <div
-              key={project.id}
-              className="mb-4 bg-card rounded-lg overflow-hidden border border-border shadow-sm"
-            >
+          projects.map((project) => {
+            const projectTotalTime = calculateProjectTotalTime(project.id);
+
+            return (
               <div
-                className="font-medium px-4 py-3 flex items-center justify-between"
-                style={{ backgroundColor: `${project.color}15` }}
+                key={project.id}
+                className="mb-4 bg-card rounded-lg overflow-hidden border border-border shadow-sm"
               >
-                <div className="flex items-center">
-                  <span
-                    className="h-3 w-3 rounded-full mr-2 flex-shrink-0"
-                    style={{ backgroundColor: project.color }}
-                  ></span>
-                  <span className="font-semibold">{project.name}</span>
-                </div>
-                <Badge variant="outline" className="text-xs font-normal">
-                  {tasksByProject[project.id]?.length || 0} tasks
-                </Badge>
-              </div>
-              <div className="p-2">
-                {tasksByProject[project.id]?.length ? (
-                  tasksByProject[project.id].map((task) => (
-                    <div key={task.id} className="mb-2 last:mb-0">
-                      <TaskItem
-                        key={task.id}
-                        task={task}
-                        isActive={task.id === activeTaskId}
-                        onSelect={onSelectTask}
-                        onEdit={onEditTask}
-                        activityName={getActivityName(task.activityId)}
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-muted-foreground py-3 px-2 italic text-center">
-                    No tasks in this project
+                <div
+                  className="font-medium px-4 py-3 flex items-center justify-between"
+                  style={{ backgroundColor: `${project.color}15` }}
+                >
+                  <div className="flex items-center">
+                    <span
+                      className="h-3 w-3 rounded-full mr-2 flex-shrink-0"
+                      style={{ backgroundColor: project.color }}
+                    ></span>
+                    <span className="font-semibold">{project.name}</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {tasksByProject[project.id]?.length || 0} tasks
+                    </Badge>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs font-normal flex items-center gap-1"
+                    >
+                      <ClockIcon className="h-3 w-3" />
+                      {formatDuration(projectTotalTime)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="p-2">
+                  {tasksByProject[project.id]?.length ? (
+                    tasksByProject[project.id].map((task) => {
+                      const taskTotalTime = calculateTaskTotalTime(task.id);
+
+                      return (
+                        <div key={task.id} className="mb-2 last:mb-0">
+                          <TaskItem
+                            key={task.id}
+                            task={task}
+                            isActive={task.id === activeTaskId}
+                            onSelect={onSelectTask}
+                            onEdit={onEditTask}
+                            activityName={getActivityName(task.activityId)}
+                            totalTime={taskTotalTime}
+                          />
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-sm text-muted-foreground py-3 px-2 italic text-center">
+                      No tasks in this project
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

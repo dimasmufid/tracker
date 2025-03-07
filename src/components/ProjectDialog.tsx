@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { useForm, UseFormReturn } from "react-hook-form";
+import { ProjectFormValues, projectFormSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,21 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "./ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(2, {
-      message: "Project name must be at least 2 characters.",
-    })
-    .max(50, {
-      message: "Project name must not exceed 50 characters.",
-    }),
-  description: z.string().optional(),
-  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
-    message: "Please enter a valid hex color code (e.g., #FF5733).",
-  }),
-});
-
 type Project = {
   id: number;
   name: string;
@@ -55,7 +40,7 @@ interface ProjectDialogProps {
   project: Project | null;
   onSaveProject: (
     project: Project | null,
-    data: z.infer<typeof formSchema>
+    data: ProjectFormValues
   ) => Promise<void>;
   mode: "add" | "edit";
 }
@@ -70,8 +55,8 @@ export function ProjectDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [colorPreview, setColorPreview] = useState(project?.color || "#3b82f6");
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form: UseFormReturn<ProjectFormValues> = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
     defaultValues: {
       name: project?.name || "",
       description: project?.description || "",
@@ -100,15 +85,16 @@ export function ProjectDialog({
 
   // Update color preview when color field changes
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "color" && value.color) {
-        setColorPreview(value.color as string);
+    const subscription = form.watch((value) => {
+      const color = value.color;
+      if (color) {
+        setColorPreview(color);
       }
     });
     return () => subscription.unsubscribe();
   }, [form]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: ProjectFormValues) {
     try {
       setIsSubmitting(true);
       await onSaveProject(project, values);

@@ -288,6 +288,7 @@ export default function TaskTracker({
             tasks={tasks}
             projects={projects}
             activities={activities}
+            taskRecords={taskRecords}
             activeTaskId={activeTaskId}
             onSelectTask={handleSelectTask}
             onAddTask={() => setIsAddTaskDialogOpen(true)}
