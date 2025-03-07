@@ -5,6 +5,7 @@
   "outputDirectory": ".next",
   "env": {
     "NEXT_TELEMETRY_DISABLED": "1",
-    "VERCEL": "1"
+    "VERCEL": "1",
+    "NODE_OPTIONS": "--max-old-space-size=4096"
   }
 }
