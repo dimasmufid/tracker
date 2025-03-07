@@ -3,10 +3,26 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { sql } from "drizzle-orm";
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
+// Create a client with fallback for different environments
+const createDbClient = () => {
+  try {
+    return createClient({
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN!,
+    });
+  } catch (e) {
+    console.error("Error creating libsql client:", e);
+    // Fallback for environments where native modules might not be available
+    return createClient({
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN!,
+      // Force HTTP protocol if native client fails
+      syncUrl: process.env.TURSO_DATABASE_URL!.replace("libsql://", "https://"),
+    });
+  }
+};
+
+const client = createDbClient();
 export const db = drizzle(client);
 
 export const projects = sqliteTable("projects", {

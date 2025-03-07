@@ -1,6 +1,5 @@
-import { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   // Configure webpack to handle native modules
