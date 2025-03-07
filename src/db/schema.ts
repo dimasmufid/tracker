@@ -3,51 +3,12 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { sql } from "drizzle-orm";
 
-// Create a client with fallback for different environments
-const createDbClient = () => {
-  // Check if we're in a production environment (Vercel)
-  const isProduction = process.env.VERCEL === "1";
+// Create a client with a simple configuration
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
+});
 
-  try {
-    // In production, always use HTTP mode to avoid native module issues
-    if (isProduction) {
-      const dbUrl = process.env.TURSO_DATABASE_URL!;
-      const httpUrl = dbUrl.startsWith("libsql://")
-        ? dbUrl.replace("libsql://", "https://")
-        : dbUrl;
-
-      console.log("Using HTTP mode for database connection in production");
-      return createClient({
-        url: dbUrl,
-        authToken: process.env.TURSO_AUTH_TOKEN!,
-        syncUrl: httpUrl,
-      });
-    }
-
-    // In development, try to use native client
-    console.log("Using native mode for database connection in development");
-    return createClient({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN!,
-    });
-  } catch (e) {
-    console.error("Error creating libsql client:", e);
-    // Fallback for any environment where client creation fails
-    const dbUrl = process.env.TURSO_DATABASE_URL!;
-    const httpUrl = dbUrl.startsWith("libsql://")
-      ? dbUrl.replace("libsql://", "https://")
-      : dbUrl;
-
-    console.log("Falling back to HTTP mode for database connection");
-    return createClient({
-      url: dbUrl,
-      authToken: process.env.TURSO_AUTH_TOKEN!,
-      syncUrl: httpUrl,
-    });
-  }
-};
-
-const client = createDbClient();
 export const db = drizzle(client);
 
 export const projects = sqliteTable("projects", {
