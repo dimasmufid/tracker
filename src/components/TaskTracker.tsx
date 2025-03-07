@@ -5,10 +5,16 @@ import Stopwatch from "./Stopwatch";
 import TaskList from "./TaskList";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { EditTaskDialog } from "./EditTaskDialog";
-import { startTaskTracking, stopTaskTracking } from "@/services/taskService";
+import {
+  startTaskTracking,
+  stopTaskTracking,
+  createTask,
+  checkTaskExists,
+} from "@/services/taskService";
 import { normalizeTimestamp } from "@/utils/timeUtils";
 import * as z from "zod";
 import { startOfDay } from "date-fns";
+import { toast } from "@/components/ui/use-toast";
 
 // Define types that match the database schema
 interface DbTask {
@@ -58,7 +64,7 @@ interface TaskRecord {
   endedAt: number | null;
 }
 
-interface Activity {
+interface DbActivity {
   id: number;
   name: string;
 }
@@ -68,6 +74,7 @@ interface TaskTrackerProps {
   initialProjects: DbProject[];
   initialTaskRecords: DbTaskRecord[];
   initialActiveTask: DbTask | null;
+  initialActivities: DbActivity[];
   selectedDate?: Date;
 }
 
@@ -83,6 +90,7 @@ export default function TaskTracker({
   initialProjects,
   initialTaskRecords,
   initialActiveTask,
+  initialActivities,
   selectedDate,
 }: TaskTrackerProps) {
   // Convert all dates to timestamps for client-side use
@@ -127,15 +135,6 @@ export default function TaskTracker({
   const [isEditTaskDialogOpen, setIsEditTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-  // Mock activities for demo
-  const activities: Activity[] = [
-    { id: 1, name: "Development" },
-    { id: 2, name: "Design" },
-    { id: 3, name: "Meeting" },
-    { id: 4, name: "Planning" },
-    { id: 5, name: "Research" },
-  ];
-
   // Debug logging
   useEffect(() => {
     if (taskRecords.length > 0) {
@@ -159,11 +158,22 @@ export default function TaskTracker({
   }, [tasks, selectedDate]);
 
   // Handle task selection
-  const handleSelectTask = (taskId: number) => {
+  const handleSelectTask = async (taskId: number) => {
     const selectedTask = tasks.find((task) => task.id === taskId);
     if (selectedTask) {
-      setActiveTask(selectedTask);
-      setActiveTaskId(taskId);
+      // Check if the task exists in the database
+      const exists = await checkTaskExists(taskId);
+      if (exists) {
+        setActiveTask(selectedTask);
+        setActiveTaskId(taskId);
+      } else {
+        toast({
+          title: "Task not found",
+          description: `Task #${taskId} does not exist in the database. It may have been deleted.`,
+          variant: "destructive",
+        });
+        console.error(`Task #${taskId} does not exist in the database`);
+      }
     }
   };
 
@@ -187,11 +197,14 @@ export default function TaskTracker({
         console.log("New record created:", newRecord);
         setTaskRecords((prev) => [newRecord, ...prev]);
         return Promise.resolve();
+      } else {
+        console.error("No record was created when starting tracking");
+        return Promise.reject(new Error("Failed to create tracking record"));
       }
     } catch (error) {
       console.error("Failed to start tracking:", error);
+      return Promise.reject(error);
     }
-    return Promise.reject();
   };
 
   // Stop tracking a task
@@ -212,11 +225,14 @@ export default function TaskTracker({
           )
         );
         return Promise.resolve();
+      } else {
+        console.error("No active tracking session found for task ID:", taskId);
+        return Promise.reject(new Error("No active tracking session found"));
       }
     } catch (error) {
       console.error("Failed to stop tracking:", error);
+      return Promise.reject(error);
     }
-    return Promise.reject();
   };
 
   // Handle adding a new task
@@ -225,16 +241,20 @@ export default function TaskTracker({
       // Validate the data using the schema
       taskFormSchema.parse(data);
 
-      // Mock creating a task since we don't have the actual API
+      // Create the task in the database
+      const newTaskData = await createTask(
+        data.name,
+        parseInt(data.projectId),
+        parseInt(data.activityId)
+      );
+
+      // Convert the returned task to the client-side format
       const newTask: Task = {
-        id: Math.floor(Math.random() * 1000) + 100, // Generate a random ID
-        name: data.name,
-        projectId: parseInt(data.projectId),
-        activityId: parseInt(data.activityId),
-        createdAt: Date.now(),
+        ...newTaskData,
+        createdAt: normalizeTimestamp(newTaskData.createdAt) || Date.now(),
       };
 
-      console.log("Creating new task:", newTask);
+      console.log("Task created:", newTask);
 
       // Add the new task to the tasks list
       setTasks((prevTasks) => [newTask, ...prevTasks]);
@@ -312,7 +332,7 @@ export default function TaskTracker({
           <TaskList
             tasks={filteredTasks}
             projects={projects}
-            activities={activities}
+            activities={initialActivities}
             taskRecords={taskRecords}
             activeTaskId={activeTaskId}
             onSelectTask={handleSelectTask}
@@ -327,7 +347,7 @@ export default function TaskTracker({
         open={isAddTaskDialogOpen}
         onOpenChange={setIsAddTaskDialogOpen}
         projects={projects}
-        activities={activities}
+        activities={initialActivities}
         onAddTask={handleAddTask}
       />
 
@@ -336,7 +356,7 @@ export default function TaskTracker({
         onOpenChange={setIsEditTaskDialogOpen}
         task={taskToEdit}
         projects={projects}
-        activities={activities}
+        activities={initialActivities}
         onEditTask={handleSaveEditedTask}
       />
     </div>

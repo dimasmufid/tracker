@@ -4,13 +4,13 @@ import {
   getProjects,
   getTaskRecords,
   getActiveTask,
+  getActivities,
 } from "@/services/taskService";
 
 export default async function Home() {
-  console.log("Fetching data for home page...");
-
   const tasks = await getTasks();
   const projects = await getProjects();
+  const activities = await getActivities();
   const taskRecords = await getTaskRecords();
   const activeTask = await getActiveTask();
 
@@ -20,6 +20,7 @@ export default async function Home() {
       initialProjects={projects}
       initialTaskRecords={taskRecords}
       initialActiveTask={activeTask}
+      initialActivities={activities}
     />
   );
 }

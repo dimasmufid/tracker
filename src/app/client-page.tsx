@@ -5,7 +5,12 @@ import Header from "@/components/Header";
 import TaskTracker from "@/components/TaskTracker";
 import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
 import { startOfDay } from "date-fns";
-
+import {
+  addActivity,
+  addProject,
+  editActivity,
+  editProject,
+} from "@/lib/actions";
 // Type definitions
 type Project = {
   id: number;
@@ -39,11 +44,18 @@ interface DbTaskRecord {
   endedAt: Date | number | null;
 }
 
+interface DbActivity {
+  id: number;
+  name: string;
+  createdAt: Date | number;
+}
+
 interface HomeClientProps {
   initialTasks: DbTask[];
   initialProjects: DbProject[];
   initialTaskRecords: DbTaskRecord[];
   initialActiveTask: DbTask | null;
+  initialActivities: DbActivity[];
 }
 
 export default function HomeClient({
@@ -51,6 +63,7 @@ export default function HomeClient({
   initialProjects,
   initialTaskRecords,
   initialActiveTask,
+  initialActivities,
 }: HomeClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     startOfDay(new Date())
@@ -68,14 +81,12 @@ export default function HomeClient({
         : Number(project.createdAt),
   }));
 
-  // Mock activities for demo
-  const activities = [
-    { id: 1, name: "Development" },
-    { id: 2, name: "Design" },
-    { id: 3, name: "Meeting" },
-    { id: 4, name: "Planning" },
-    { id: 5, name: "Research" },
-  ];
+  // Convert activities to the correct type
+  const formattedActivities =
+    initialActivities?.map((activity) => ({
+      id: activity.id,
+      name: activity.name,
+    })) || [];
 
   // Handle date change
   const handleDateChange = (date: Date) => {
@@ -84,40 +95,32 @@ export default function HomeClient({
 
   // These functions would normally interact with your backend
   const handleAddProject = async (data: ProjectFormValues) => {
-    console.log("Adding project:", data);
-    // Implementation would go here
-    return Promise.resolve();
+    await addProject(data);
   };
 
   const handleEditProject = async (
     projectId: number,
     data: ProjectFormValues
   ) => {
-    console.log("Editing project:", projectId, data);
-    // Implementation would go here
-    return Promise.resolve();
+    await editProject(projectId, data);
   };
 
   const handleAddActivity = async (data: ActivityFormValues) => {
-    console.log("Adding activity:", data);
-    // Implementation would go here
-    return Promise.resolve();
+    await addActivity(data);
   };
 
   const handleEditActivity = async (
     activityId: number,
     data: ActivityFormValues
   ) => {
-    console.log("Editing activity:", activityId, data);
-    // Implementation would go here
-    return Promise.resolve();
+    await editActivity(activityId, data);
   };
 
   return (
     <main className="flex min-h-screen flex-col bg-background">
       <Header
         projects={formattedProjects}
-        activities={activities}
+        activities={formattedActivities}
         onAddProject={handleAddProject}
         onEditProject={handleEditProject}
         onAddActivity={handleAddActivity}
@@ -131,6 +134,7 @@ export default function HomeClient({
           initialProjects={initialProjects}
           initialTaskRecords={initialTaskRecords}
           initialActiveTask={initialActiveTask}
+          initialActivities={formattedActivities}
           selectedDate={selectedDate}
         />
       </div>

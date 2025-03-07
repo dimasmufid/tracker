@@ -42,7 +42,7 @@ type TaskListProps = {
   activities?: Activity[];
   taskRecords: TaskRecord[];
   activeTaskId: number | null;
-  onSelectTask: (taskId: number) => void;
+  onSelectTask: (taskId: number) => Promise<void>;
   onClearSelection?: () => void;
   onAddTask: () => void;
   onEditTask: (task: Task) => void;

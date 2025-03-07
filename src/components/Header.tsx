@@ -155,11 +155,14 @@ export default function Header({
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Navigation</DropdownMenuLabel>
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => router.push("/dashboard")}>
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard")}
+                  disabled
+                >
                   <LineChart className="w-4 h-4 mr-2" />
                   <span>Dashboard</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem disabled>
                   <CalendarIcon className="w-4 h-4 mr-2" />
                   <span>Calendar</span>
                 </DropdownMenuItem>
@@ -251,7 +254,7 @@ export default function Header({
               </DropdownMenuSub>
 
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <SettingsIcon className="w-4 h-4 mr-2" />
                 <span>Settings</span>
               </DropdownMenuItem>

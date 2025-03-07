@@ -25,6 +25,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "./ui/textarea";
 import { toast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
+import { CheckIcon } from "lucide-react";
+
+// Predefined color options similar to Chrome's group colors
+const colorOptions = [
+  { value: "#BF4040", label: "Red" },
+  { value: "#E67E22", label: "Orange" },
+  { value: "#F1C40F", label: "Yellow" },
+  { value: "#2ECC71", label: "Green" },
+  { value: "#3498DB", label: "Blue" },
+  { value: "#9B59B6", label: "Purple" },
+  { value: "#607D8B", label: "Gray" },
+];
 
 type Project = {
   id: number;
@@ -53,14 +66,14 @@ export function ProjectDialog({
   mode,
 }: ProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [colorPreview, setColorPreview] = useState(project?.color || "#3b82f6");
+  const defaultColor = project?.color || colorOptions[4].value; // Default to blue if no color is provided
 
   const form: UseFormReturn<ProjectFormValues> = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       name: project?.name || "",
       description: project?.description || "",
-      color: project?.color || "#3b82f6",
+      color: project?.color || defaultColor,
     },
   });
 
@@ -72,27 +85,14 @@ export function ProjectDialog({
         description: project.description || "",
         color: project.color,
       });
-      setColorPreview(project.color);
     } else if (mode === "add") {
       form.reset({
         name: "",
         description: "",
-        color: "#3b82f6",
+        color: defaultColor,
       });
-      setColorPreview("#3b82f6");
     }
-  }, [project, form, mode]);
-
-  // Update color preview when color field changes
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      const color = value.color;
-      if (color) {
-        setColorPreview(color);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
+  }, [project, form, mode, defaultColor]);
 
   async function onSubmit(values: ProjectFormValues) {
     try {
@@ -173,17 +173,32 @@ export function ProjectDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Color</FormLabel>
-                  <div className="flex items-center gap-3">
-                    <FormControl>
-                      <Input placeholder="#3b82f6" {...field} />
-                    </FormControl>
-                    <div
-                      className="w-10 h-10 rounded-full border border-border flex-shrink-0"
-                      style={{ backgroundColor: colorPreview }}
-                    />
-                  </div>
+                  <FormControl>
+                    <div className="flex flex-wrap gap-3 py-2">
+                      {colorOptions.map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
+                            field.value === color.value
+                              ? "ring-2 ring-offset-2 ring-primary scale-110"
+                              : "hover:scale-110 border-border"
+                          )}
+                          style={{ backgroundColor: color.value }}
+                          onClick={() => field.onChange(color.value)}
+                          title={color.label}
+                          aria-label={`Select ${color.label} color`}
+                        >
+                          {field.value === color.value && (
+                            <CheckIcon className="h-5 w-5 text-white drop-shadow-sm" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </FormControl>
                   <FormDescription>
-                    Enter a hex color code (e.g., #3b82f6)
+                    Select a color for your project
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

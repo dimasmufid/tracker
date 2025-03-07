@@ -32,6 +32,20 @@ export async function getTaskRecords(taskId?: number) {
 }
 
 export async function startTaskTracking(taskId: number) {
+  console.log("Starting tracking for task ID:", taskId);
+
+  // First, check if the task exists
+  const taskExists = await db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(eq(tasks.id, taskId))
+    .limit(1);
+
+  if (taskExists.length === 0) {
+    console.error(`Task with ID ${taskId} does not exist in the database`);
+    throw new Error(`Task with ID ${taskId} does not exist`);
+  }
+
   // Check if there's already an active tracking session
   const activeRecord = await db
     .select()
@@ -48,19 +62,26 @@ export async function startTaskTracking(taskId: number) {
   }
 
   // Start a new tracking session
-  const result = await db
-    .insert(taskRecords)
-    .values({
-      taskId,
-      startedAt: new Date(),
-    })
-    .returning();
+  try {
+    const result = await db
+      .insert(taskRecords)
+      .values({
+        taskId,
+        startedAt: new Date(),
+      })
+      .returning();
 
-  console.log("New tracking session started:", result);
-  return result;
+    console.log("New tracking session started:", result);
+    return result;
+  } catch (error) {
+    console.error("Error starting tracking session:", error);
+    throw error;
+  }
 }
 
 export async function stopTaskTracking(taskId: number) {
+  console.log("Stopping tracking for task ID:", taskId);
+
   // Find the active record for this task
   const activeRecord = await db
     .select()
@@ -69,18 +90,24 @@ export async function stopTaskTracking(taskId: number) {
     .limit(1);
 
   if (activeRecord.length === 0) {
+    console.log("No active tracking session found for task ID:", taskId);
     return null;
   }
 
-  // End the tracking session
-  const result = await db
-    .update(taskRecords)
-    .set({ endedAt: new Date() })
-    .where(eq(taskRecords.id, activeRecord[0].id))
-    .returning();
+  try {
+    // End the tracking session
+    const result = await db
+      .update(taskRecords)
+      .set({ endedAt: new Date() })
+      .where(eq(taskRecords.id, activeRecord[0].id))
+      .returning();
 
-  console.log("Tracking session stopped:", result);
-  return result;
+    console.log("Tracking session stopped:", result);
+    return result;
+  } catch (error) {
+    console.error("Error stopping tracking session:", error);
+    throw error;
+  }
 }
 
 export async function getActiveTask() {
@@ -165,4 +192,47 @@ export async function calculateProjectTotalTime(projectId: number) {
   });
 
   return totalTime;
+}
+
+export async function createTask(
+  name: string,
+  projectId: number,
+  activityId: number
+) {
+  console.log("Creating task in database:", { name, projectId, activityId });
+  try {
+    const result = await db
+      .insert(tasks)
+      .values({
+        name,
+        projectId,
+        activityId,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    console.log("Task created in database:", result);
+    return result[0];
+  } catch (error) {
+    console.error("Error creating task:", error);
+    throw error;
+  }
+}
+
+export async function checkTaskExists(taskId: number): Promise<boolean> {
+  console.log("Checking if task exists:", taskId);
+  try {
+    const taskExists = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(eq(tasks.id, taskId))
+      .limit(1);
+
+    const exists = taskExists.length > 0;
+    console.log(`Task ${taskId} exists: ${exists}`);
+    return exists;
+  } catch (error) {
+    console.error("Error checking if task exists:", error);
+    return false;
+  }
 }

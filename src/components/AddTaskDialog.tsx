@@ -151,7 +151,7 @@ export function AddTaskDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {projects.map((project) => (
+                      {projects?.map((project) => (
                         <SelectItem
                           key={project.id}
                           value={project.id.toString()}
@@ -181,7 +181,7 @@ export function AddTaskDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {activities.map((activity) => (
+                      {activities?.map((activity) => (
                         <SelectItem
                           key={activity.id}
                           value={activity.id.toString()}

@@ -23,7 +23,7 @@ type Task = {
 type TaskItemProps = {
   task: Task;
   isActive: boolean;
-  onSelect: (taskId: number) => void;
+  onSelect: (taskId: number) => Promise<void>;
   onClearSelection?: () => void;
   onEdit: (task: Task) => void;
   activityName?: string;
@@ -39,11 +39,11 @@ export default function TaskItem({
   activityName,
   totalTime,
 }: TaskItemProps) {
-  const handleTaskClick = () => {
+  const handleTaskClick = async () => {
     if (isActive && onClearSelection) {
       onClearSelection();
     } else {
-      onSelect(task.id);
+      await onSelect(task.id);
     }
   };
 
@@ -117,9 +117,9 @@ export default function TaskItem({
             variant="ghost"
             size="sm"
             className="text-muted-foreground h-7 px-2"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
-              onSelect(task.id);
+              await onSelect(task.id);
             }}
           >
             <PlayIcon className="h-3.5 w-3.5" />

@@ -11,6 +11,7 @@ import {
 } from "@/utils/timeUtils";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ClientOnly } from "./ClientOnly";
+import { toast } from "@/components/ui/use-toast";
 
 interface Task {
   id: number;
@@ -99,14 +100,35 @@ export default function Stopwatch({
   const toggleTimer = async () => {
     if (!activeTask) return;
 
-    if (isRunning) {
-      await onStopTracking(activeTask.id);
-    } else {
-      setTime(0); // Reset timer when starting new session
-      await onStartTracking(activeTask.id);
-    }
+    try {
+      if (isRunning) {
+        await onStopTracking(activeTask.id);
+        toast({
+          title: "Timer paused",
+          description: `Tracking paused for "${activeTask.name}"`,
+          variant: "default",
+        });
+      } else {
+        setTime(0); // Reset timer when starting new session
+        await onStartTracking(activeTask.id);
+        toast({
+          title: "Timer started",
+          description: `Now tracking "${activeTask.name}"`,
+          variant: "default",
+        });
+      }
 
-    setIsRunning(!isRunning);
+      setIsRunning(!isRunning);
+    } catch (error) {
+      console.error("Timer operation failed:", error);
+      toast({
+        title: "Operation failed",
+        description: `Failed to ${
+          isRunning ? "pause" : "start"
+        } tracking. Please try again.`,
+        variant: "destructive",
+      });
+    }
   };
 
   // Find the current active record
