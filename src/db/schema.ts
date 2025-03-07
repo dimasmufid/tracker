@@ -1,55 +1,53 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import { sql } from "drizzle-orm";
+import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 
-// Create a client with a simple configuration
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
+// Configure Neon to use WebSockets in Node.js environment
+neonConfig.webSocketConstructor = ws;
+
+// Check for DATABASE_URL environment variable
+if (!process.env.DATABASE_URL) {
+  console.warn("Warning: DATABASE_URL environment variable is not set");
+}
+
+// Create a Neon database client with connection pooling
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL!,
 });
+export const db = drizzle(pool);
 
-export const db = drizzle(client);
-
-export const projects = sqliteTable("projects", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  createdAt: integer("createdAt", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   color: text("color").notNull().default("#FFFFFF"),
 });
 
-export const activities = sqliteTable("activities", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  createdAt: integer("createdAt", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const tasks = sqliteTable("tasks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  projectId: integer("projectId")
+  projectId: integer("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
-  activityId: integer("activityId")
+  activityId: integer("activity_id")
     .notNull()
     .references(() => activities.id, { onDelete: "cascade" }),
-  createdAt: integer("createdAt", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const taskRecords = sqliteTable("taskRecords", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  taskId: integer("taskId")
+export const taskRecords = pgTable("task_records", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id")
     .notNull()
     .references(() => tasks.id, { onDelete: "cascade" }),
-  startedAt: integer("startedAt", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  endedAt: integer("endedAt", { mode: "timestamp_ms" }),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
 });
