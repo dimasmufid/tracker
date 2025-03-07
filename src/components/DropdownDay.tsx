@@ -21,7 +21,7 @@ export function DropdownDay() {
         <Button
           variant={"outline"}
           className={cn(
-            "w-[280px] justify-start text-left font-normal",
+            "w-[250px] justify-start text-left font-normal hover:bg-primary-foreground",
             !date && "text-muted-foreground"
           )}
         >

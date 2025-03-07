@@ -1,33 +1,40 @@
 import Header from "@/components/Header";
-import Stopwatch from "@/components/Stopwatch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { db } from "@/db/schema";
-import * as schema from "@/db/schema";
+import TaskTracker from "@/components/TaskTracker";
+import {
+  getTasks,
+  getProjects,
+  getTaskRecords,
+  getActiveTask,
+} from "@/services/taskService";
 
 export default async function Home() {
-  const tasks = await db.select().from(schema.tasks);
+  console.log("Fetching data for home page...");
+
+  const tasks = await getTasks();
+  const projects = await getProjects();
+  const taskRecords = await getTaskRecords();
+  const activeTask = await getActiveTask();
+
+  // Log the first task record for debugging
+  if (taskRecords.length > 0) {
+    console.log("First task record from database:", {
+      id: taskRecords[0].id,
+      taskId: taskRecords[0].taskId,
+      startedAt: taskRecords[0].startedAt,
+      endedAt: taskRecords[0].endedAt,
+    });
+  }
 
   return (
-    <main className="flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col bg-background">
       <Header />
-      <div className="flex flex-row grow">
-        <div className="w-1/2 p-6 border-r">
-          <Stopwatch />
-        </div>
-        <div className="w-1/2 p-6">
-          <Tabs defaultValue="tasks">
-            <TabsList>
-              <TabsTrigger value="tasks">Tasks</TabsTrigger>
-              <TabsTrigger value="projects">Projects</TabsTrigger>
-            </TabsList>
-            <TabsContent value="tasks">
-              {tasks.map((task) => (
-                <div key={task.id}>{task.name}</div>
-              ))}
-            </TabsContent>
-            <TabsContent value="projects">Projects</TabsContent>
-          </Tabs>
-        </div>
+      <div className="flex-grow container mx-auto px-0 md:px-2 max-w-7xl">
+        <TaskTracker
+          initialTasks={tasks}
+          initialProjects={projects}
+          initialTaskRecords={taskRecords}
+          initialActiveTask={activeTask}
+        />
       </div>
     </main>
   );

@@ -41,7 +41,7 @@ export const tasks = sqliteTable("tasks", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const task_records = sqliteTable("task_records", {
+export const taskRecords = sqliteTable("taskRecords", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   taskId: integer("taskId")
     .notNull()
