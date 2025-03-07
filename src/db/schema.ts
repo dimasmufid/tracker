@@ -16,6 +16,7 @@ const createDbClient = () => {
         ? dbUrl.replace("libsql://", "https://")
         : dbUrl;
 
+      console.log("Using HTTP mode for database connection in production");
       return createClient({
         url: dbUrl,
         authToken: process.env.TURSO_AUTH_TOKEN!,
@@ -24,6 +25,7 @@ const createDbClient = () => {
     }
 
     // In development, try to use native client
+    console.log("Using native mode for database connection in development");
     return createClient({
       url: process.env.TURSO_DATABASE_URL!,
       authToken: process.env.TURSO_AUTH_TOKEN!,
@@ -36,6 +38,7 @@ const createDbClient = () => {
       ? dbUrl.replace("libsql://", "https://")
       : dbUrl;
 
+    console.log("Falling back to HTTP mode for database connection");
     return createClient({
       url: dbUrl,
       authToken: process.env.TURSO_AUTH_TOKEN!,

@@ -2,7 +2,6 @@ import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   // Configure webpack to handle native modules
   webpack: (config, { isServer }) => {
     // For libsql and other native dependencies
