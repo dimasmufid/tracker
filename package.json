@@ -54,12 +54,12 @@
     "typescript": "5.3.3"
   },
   "optionalDependencies": {
-    "@libsql/darwin-x64": "0.14.0",
     "@libsql/darwin-arm64": "0.14.0",
-    "@libsql/linux-x64-gnu": "0.14.0",
-    "@libsql/linux-x64-musl": "0.14.0",
+    "@libsql/darwin-x64": "0.14.0",
     "@libsql/linux-arm64-gnu": "0.14.0",
     "@libsql/linux-arm64-musl": "0.14.0",
+    "@libsql/linux-x64-gnu": "0.14.0",
+    "@libsql/linux-x64-musl": "0.14.0",
     "@libsql/win32-x64-msvc": "0.14.0"
   }
 }
