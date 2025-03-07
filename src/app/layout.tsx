@@ -14,9 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Time Tracker",
+  title: {
+    template: "%s | FocusTrack",
+    default: "FocusTrack - Mindful Time Management",
+  },
   description:
-    "Being aware of how you spend your time is the first step to changing it.",
+    "Track your time, boost your productivity, and stay focused on what matters most.",
+  keywords: ["time tracking", "productivity", "focus", "task management"],
+  authors: [
+    {
+      name: "FocusTrack Team",
+    },
+  ],
+  creator: "FocusTrack",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

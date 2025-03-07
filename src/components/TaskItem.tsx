@@ -10,6 +10,7 @@ import {
   XCircleIcon,
 } from "lucide-react";
 import { formatDuration } from "@/utils/timeUtils";
+import { ClientOnly } from "./ClientOnly";
 
 type Task = {
   id: number;
@@ -77,7 +78,9 @@ export default function TaskItem({
           )}
           <div className="flex items-center text-xs text-muted-foreground">
             <ClockIcon className="h-3 w-3 mr-1" />
-            {formatDuration(totalTime)}
+            <ClientOnly fallback="--:--:--">
+              {formatDuration(totalTime)}
+            </ClientOnly>
           </div>
         </div>
       </div>

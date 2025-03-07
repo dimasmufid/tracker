@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDuration, calculateDuration } from "@/utils/timeUtils";
 import { useMemo } from "react";
+import { ClientOnly } from "./ClientOnly";
 
 type Task = {
   id: number;
@@ -170,7 +171,9 @@ export default function TaskList({
                       className="text-xs font-normal flex items-center gap-1"
                     >
                       <ClockIcon className="h-3 w-3" />
-                      {formatDuration(projectTotalTime)}
+                      <ClientOnly fallback="--:--:--">
+                        {formatDuration(projectTotalTime)}
+                      </ClientOnly>
                     </Badge>
                   </div>
                 </div>

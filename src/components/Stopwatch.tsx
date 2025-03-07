@@ -9,6 +9,8 @@ import {
   formatDuration,
   calculateDuration,
 } from "@/utils/timeUtils";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { ClientOnly } from "./ClientOnly";
 
 interface Task {
   id: number;
@@ -44,6 +46,9 @@ export default function Stopwatch({
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [todayTotal, setTodayTotal] = useState(0);
+
+  // Update document title with timer state
+  useDocumentTitle(time, isRunning, activeTask?.name);
 
   // Calculate today's total time spent
   useEffect(() => {
@@ -163,7 +168,7 @@ export default function Stopwatch({
     <div className="timer-container active flex flex-col h-full">
       <div className="flex flex-col items-center justify-start gap-6 p-4 pt-8 md:pt-12">
         <div className="text-7xl md:text-8xl font-thin tracking-wider">
-          {formatDuration(time)}
+          <ClientOnly fallback="00:00:00">{formatDuration(time)}</ClientOnly>
         </div>
 
         <div className="flex flex-col items-center gap-2">
@@ -215,7 +220,11 @@ export default function Stopwatch({
             <TimerResetIcon className="w-4 h-4 opacity-70" />
             <span className="text-sm opacity-70">Today&apos;s total</span>
           </div>
-          <span className="font-medium">{formatDuration(todayTotal)}</span>
+          <span className="font-medium">
+            <ClientOnly fallback="--:--:--">
+              {formatDuration(todayTotal)}
+            </ClientOnly>
+          </span>
         </div>
 
         <div className="mt-3">
@@ -245,7 +254,9 @@ export default function Stopwatch({
                         })}
                       </span>
                       <span className="font-medium">
-                        {formatDuration(duration)}
+                        <ClientOnly fallback="--:--:--">
+                          {formatDuration(duration)}
+                        </ClientOnly>
                       </span>
                     </div>
                   );

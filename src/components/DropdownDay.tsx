@@ -47,7 +47,7 @@ export function DropdownDay({ selectedDate, onDateChange }: DropdownDayProps) {
         <Button
           variant={"outline"}
           className={cn(
-            "w-[250px] justify-start text-left font-normal hover:bg-primary-foreground",
+            "w-[200px] justify-start text-left font-normal hover:bg-primary-foreground",
             !date && "text-muted-foreground"
           )}
         >

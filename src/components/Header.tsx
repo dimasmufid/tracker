@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   LineChart,
   MoreVertical,
-  TimerResetIcon,
   CalendarIcon,
   SettingsIcon,
   FolderIcon,
@@ -30,6 +29,7 @@ import { DropdownDay } from "./DropdownDay";
 import { ProjectDialog } from "./ProjectDialog";
 import { ActivityDialog } from "./ActivityDialog";
 import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
+import { Logo } from "./Logo";
 
 type Project = {
   id: number;
@@ -138,12 +138,7 @@ export default function Header({
     <div className="w-full bg-secondary flex flex-row justify-between items-center px-3 py-2 md:px-4">
       <div className="container mx-auto max-w-7xl flex justify-between items-center">
         {/* logo */}
-        <div className="flex flex-row items-center gap-2">
-          <TimerResetIcon className="w-5 h-5" />
-          <h1 className="text-lg font-bold">
-            Time<span className="font-thin">Tracker</span>
-          </h1>
-        </div>
+        <Logo size="md" />
 
         {/* main actions */}
         <div className="flex flex-row items-center gap-2">
