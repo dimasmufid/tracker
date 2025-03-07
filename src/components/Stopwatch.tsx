@@ -43,21 +43,49 @@ export default function Stopwatch({
   onClearTask,
   taskRecords,
 }: StopwatchProps) {
+  // Initialize with explicit values to avoid hydration issues
   const [time, setTime] = useState(0);
-  // Initialize isRunning to false by default to avoid hydration issues
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [todayTotal, setTodayTotal] = useState(0);
-  // Track if component has mounted to avoid hydration issues
-  const [hasMounted, setHasMounted] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Find the current active record - do this calculation outside of effects
+  const activeRecord = taskRecords?.find((record) => record.endedAt === null);
+
+  // One-time initialization after component mounts
+  useEffect(() => {
+    if (isInitialized) return;
+
+    // Determine initial running state based on active record
+    const shouldBeRunning = !!activeRecord;
+
+    if (shouldBeRunning) {
+      const normalizedStartTime =
+        normalizeTimestamp(activeRecord.startedAt) || Date.now();
+      const elapsed = Date.now() - normalizedStartTime;
+      setTime(Math.max(0, elapsed));
+    }
+
+    setIsRunning(shouldBeRunning);
+    setIsInitialized(true);
+
+    console.log("Stopwatch initialized:", {
+      activeTask,
+      activeRecord,
+      isRunning: shouldBeRunning,
+      time: shouldBeRunning
+        ? Math.max(
+            0,
+            Date.now() -
+              (normalizeTimestamp(activeRecord?.startedAt) || Date.now())
+          )
+        : 0,
+    });
+  }, [activeRecord, isInitialized]);
 
   // Update document title with timer state
   useDocumentTitle(time, isRunning, activeTask?.name);
-
-  // Set hasMounted to true after component mounts
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   // Calculate today's total time spent
   useEffect(() => {
@@ -82,56 +110,105 @@ export default function Stopwatch({
     setTodayTotal(total);
   }, [taskRecords]);
 
+  // Timer interval effect
   useEffect(() => {
-    // Only run this effect on the client after mounting to avoid hydration issues
-    if (!hasMounted) return;
+    // Only run this effect on the client after initialization
+    if (!isInitialized) return;
 
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Only start the interval if we're running
     if (isRunning) {
       intervalRef.current = setInterval(() => {
         setTime((prevTime) => prevTime + 1000); // Increment by 1 second
       }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+
+      console.log("Timer interval started");
+    } else {
+      console.log("Timer interval stopped");
     }
 
+    // Cleanup on unmount or when isRunning changes
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
+        console.log("Timer interval cleared");
       }
     };
-  }, [isRunning, hasMounted]);
+  }, [isRunning, isInitialized]);
 
   // Reset timer when active task changes
   useEffect(() => {
-    // Only run this effect on the client after mounting to avoid hydration issues
-    if (!hasMounted) return;
+    // Only run this effect on the client after initialization
+    if (!isInitialized) return;
 
-    if (!isRunning) {
+    // Only reset the timer if we're not running and the active task changes
+    if (!isRunning && activeTask) {
+      console.log("Resetting timer for new task:", activeTask.id);
       setTime(0);
     }
-  }, [activeTask, isRunning, hasMounted]);
+  }, [activeTask, isRunning, isInitialized]);
 
   const toggleTimer = async () => {
-    if (!activeTask) return;
+    if (!activeTask || !isInitialized) return;
 
     try {
-      if (isRunning) {
-        // Check if there's actually an active record for this task before stopping
-        const hasActiveRecord = taskRecords?.some(
-          (record) => record.taskId === activeTask.id && record.endedAt === null
-        );
+      // Get the current state from the database
+      const hasActiveRecord = taskRecords?.some(
+        (record) => record.taskId === activeTask.id && record.endedAt === null
+      );
 
+      // If the UI state doesn't match the database state, correct it
+      if (isRunning !== hasActiveRecord) {
+        console.warn(
+          "UI running state doesn't match database state. Correcting..."
+        );
+        console.log({
+          uiState: isRunning ? "running" : "paused",
+          dbState: hasActiveRecord ? "running" : "paused",
+        });
+
+        setIsRunning(hasActiveRecord);
+
+        toast({
+          title: "State corrected",
+          description: `Timer state has been corrected to ${
+            hasActiveRecord ? "running" : "paused"
+          }.`,
+          variant: "default",
+        });
+
+        // If we corrected to running, update the time
+        if (hasActiveRecord) {
+          const activeRec = taskRecords.find(
+            (record) =>
+              record.taskId === activeTask.id && record.endedAt === null
+          );
+          if (activeRec) {
+            const normalizedStartTime =
+              normalizeTimestamp(activeRec.startedAt) || Date.now();
+            const elapsed = Date.now() - normalizedStartTime;
+            setTime(Math.max(0, elapsed));
+          }
+        }
+
+        return;
+      }
+
+      // Normal flow - toggle the timer state
+      if (isRunning) {
+        // We're currently running, so stop tracking
         if (!hasActiveRecord) {
           console.warn(
-            "No active record found for this task, but isRunning is true"
+            "No active record found for this task, but UI shows running"
           );
-          // Reset the running state without calling the API
+          // Just update the UI state without calling the API
           setIsRunning(false);
-          toast({
-            title: "State corrected",
-            description: "The timer state has been corrected.",
-            variant: "default",
-          });
           return;
         }
 
@@ -141,7 +218,9 @@ export default function Stopwatch({
           description: `Tracking paused for "${activeTask.name}"`,
           variant: "default",
         });
+        setIsRunning(false);
       } else {
+        // We're currently paused, so start tracking
         setTime(0); // Reset timer when starting new session
         await onStartTracking(activeTask.id);
         toast({
@@ -149,9 +228,8 @@ export default function Stopwatch({
           description: `Now tracking "${activeTask.name}"`,
           variant: "default",
         });
+        setIsRunning(true);
       }
-
-      setIsRunning(!isRunning);
     } catch (error) {
       console.error("Timer operation failed:", error);
       toast({
@@ -164,54 +242,58 @@ export default function Stopwatch({
     }
   };
 
-  // Find the current active record
-  const activeRecord = taskRecords?.find((record) => record.endedAt === null);
-
-  // Calculate time since active record started
+  // Calculate time since active record started - only run this if we're already running
   useEffect(() => {
-    // Only run this effect on the client after mounting to avoid hydration issues
-    if (!hasMounted) return;
+    // Only run this effect on the client after initialization
+    if (!isInitialized) return;
 
-    if (activeRecord && !isRunning) {
-      setIsRunning(true);
+    // Only update time if we're running and there's an active record
+    if (isRunning && activeRecord) {
       const normalizedStartTime =
         normalizeTimestamp(activeRecord.startedAt) || Date.now();
       const elapsed = Date.now() - normalizedStartTime;
       // Ensure we don't set negative time
       setTime(Math.max(0, elapsed));
     }
-  }, [activeRecord, isRunning, hasMounted]);
+  }, [activeRecord, isRunning, isInitialized]);
 
   // Debug logging
   useEffect(() => {
+    if (!isInitialized) return;
+
     if (taskRecords?.length > 0) {
       const firstRecord = taskRecords[0];
-      console.log("First record in Stopwatch:", {
-        id: firstRecord.id,
-        taskId: firstRecord.taskId,
-        startedAt: {
-          original: firstRecord.startedAt,
-          normalized: normalizeTimestamp(firstRecord.startedAt),
-          asDate: new Date(
-            normalizeTimestamp(firstRecord.startedAt) || 0
-          ).toISOString(),
-        },
-        endedAt: firstRecord.endedAt
+      console.log("Stopwatch state:", {
+        isRunning,
+        activeTask: activeTask
+          ? { id: activeTask.id, name: activeTask.name }
+          : null,
+        activeRecord: activeRecord
           ? {
-              original: firstRecord.endedAt,
-              normalized: normalizeTimestamp(firstRecord.endedAt),
-              asDate: new Date(
-                normalizeTimestamp(firstRecord.endedAt) || 0
-              ).toISOString(),
+              id: activeRecord.id,
+              taskId: activeRecord.taskId,
+              startedAt: normalizeTimestamp(activeRecord.startedAt),
+              elapsed: activeRecord
+                ? Date.now() -
+                  (normalizeTimestamp(activeRecord.startedAt) || Date.now())
+                : null,
             }
           : null,
-        duration: calculateDuration(firstRecord.startedAt, firstRecord.endedAt),
-        formattedDuration: formatDuration(
-          calculateDuration(firstRecord.startedAt, firstRecord.endedAt)
-        ),
+        firstRecord: {
+          id: firstRecord.id,
+          taskId: firstRecord.taskId,
+          startedAt: normalizeTimestamp(firstRecord.startedAt),
+          endedAt: firstRecord.endedAt
+            ? normalizeTimestamp(firstRecord.endedAt)
+            : null,
+          duration: calculateDuration(
+            firstRecord.startedAt,
+            firstRecord.endedAt
+          ),
+        },
       });
     }
-  }, [taskRecords]);
+  }, [taskRecords, activeTask, activeRecord, isRunning, isInitialized]);
 
   // Filter task records based on active task
   const filteredTaskRecords = useMemo(() => {

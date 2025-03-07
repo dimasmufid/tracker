@@ -132,37 +132,84 @@ export async function stopTaskTracking(taskId: number) {
 export async function getActiveTask() {
   try {
     // Find the active record
-    const activeRecord = await db
+    const activeRecords = await db
       .select()
       .from(taskRecords)
       .where(isNull(taskRecords.endedAt))
-      .orderBy(desc(taskRecords.startedAt)) // Get the most recent one if multiple
-      .limit(1);
+      .orderBy(desc(taskRecords.startedAt)); // Get the most recent ones
 
-    if (activeRecord.length === 0) {
+    if (activeRecords.length === 0) {
+      console.log("No active records found");
       return null;
     }
 
-    // Get the task for this record
-    const task = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.id, activeRecord[0].taskId))
-      .limit(1);
-
-    // If the task doesn't exist but we have an active record, close the record
-    if (task.length === 0) {
+    // If there are multiple active records, close all but the most recent one
+    if (activeRecords.length > 1) {
       console.warn(
-        `Active record found for non-existent task ID: ${activeRecord[0].taskId}. Closing record.`
+        `Found ${activeRecords.length} active records. Closing all but the most recent.`
       );
-      await db
-        .update(taskRecords)
-        .set({ endedAt: new Date() })
-        .where(eq(taskRecords.id, activeRecord[0].id));
-      return null;
-    }
 
-    return task[0];
+      // Keep the most recent record open
+      const mostRecentRecord = activeRecords[0];
+
+      // Close all other records
+      for (let i = 1; i < activeRecords.length; i++) {
+        await db
+          .update(taskRecords)
+          .set({ endedAt: new Date() })
+          .where(eq(taskRecords.id, activeRecords[i].id));
+
+        console.log(`Closed orphaned active record: ${activeRecords[i].id}`);
+      }
+
+      // Continue with the most recent record
+      const activeRecord = mostRecentRecord;
+
+      // Get the task for this record
+      const task = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, activeRecord.taskId))
+        .limit(1);
+
+      // If the task doesn't exist but we have an active record, close the record
+      if (task.length === 0) {
+        console.warn(
+          `Active record found for non-existent task ID: ${activeRecord.taskId}. Closing record.`
+        );
+        await db
+          .update(taskRecords)
+          .set({ endedAt: new Date() })
+          .where(eq(taskRecords.id, activeRecord.id));
+        return null;
+      }
+
+      return task[0];
+    } else {
+      // Just one active record, proceed normally
+      const activeRecord = activeRecords[0];
+
+      // Get the task for this record
+      const task = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, activeRecord.taskId))
+        .limit(1);
+
+      // If the task doesn't exist but we have an active record, close the record
+      if (task.length === 0) {
+        console.warn(
+          `Active record found for non-existent task ID: ${activeRecord.taskId}. Closing record.`
+        );
+        await db
+          .update(taskRecords)
+          .set({ endedAt: new Date() })
+          .where(eq(taskRecords.id, activeRecord.id));
+        return null;
+      }
+
+      return task[0];
+    }
   } catch (error) {
     console.error("Error getting active task:", error);
     return null;
