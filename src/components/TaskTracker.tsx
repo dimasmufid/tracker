@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react";
 import Stopwatch from "./Stopwatch";
 import TaskList from "./TaskList";
+import { AddTaskDialog } from "./AddTaskDialog";
+import { EditTaskDialog } from "./EditTaskDialog";
 import { startTaskTracking, stopTaskTracking } from "@/services/taskService";
 import { normalizeTimestamp } from "@/utils/timeUtils";
+import * as z from "zod";
 
 // Define types that match the database schema
 interface DbTask {
@@ -54,12 +57,24 @@ interface TaskRecord {
   endedAt: number | null;
 }
 
+interface Activity {
+  id: number;
+  name: string;
+}
+
 interface TaskTrackerProps {
   initialTasks: DbTask[];
   initialProjects: DbProject[];
   initialTaskRecords: DbTaskRecord[];
   initialActiveTask: DbTask | null;
 }
+
+// Form schema for adding a task
+const taskFormSchema = z.object({
+  name: z.string().min(2).max(50),
+  projectId: z.string(),
+  activityId: z.string(),
+});
 
 export default function TaskTracker({
   initialTasks,
@@ -68,7 +83,7 @@ export default function TaskTracker({
   initialActiveTask,
 }: TaskTrackerProps) {
   // Convert all dates to timestamps for client-side use
-  const [tasks] = useState<Task[]>(() =>
+  const [tasks, setTasks] = useState<Task[]>(() =>
     initialTasks.map((task) => ({
       ...task,
       createdAt: normalizeTimestamp(task.createdAt) || Date.now(),
@@ -104,6 +119,19 @@ export default function TaskTracker({
   const [activeTaskId, setActiveTaskId] = useState<number | null>(
     initialActiveTask?.id || null
   );
+
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [isEditTaskDialogOpen, setIsEditTaskDialogOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+
+  // Mock activities for demo
+  const activities: Activity[] = [
+    { id: 1, name: "Development" },
+    { id: 2, name: "Design" },
+    { id: 3, name: "Meeting" },
+    { id: 4, name: "Planning" },
+    { id: 5, name: "Research" },
+  ];
 
   // Debug logging
   useEffect(() => {
@@ -167,6 +195,81 @@ export default function TaskTracker({
     return Promise.reject();
   };
 
+  // Handle adding a new task
+  const handleAddTask = async (data: z.infer<typeof taskFormSchema>) => {
+    try {
+      // Validate the data using the schema
+      taskFormSchema.parse(data);
+
+      // Mock creating a task since we don't have the actual API
+      const newTask: Task = {
+        id: Math.floor(Math.random() * 1000) + 100, // Generate a random ID
+        name: data.name,
+        projectId: parseInt(data.projectId),
+        activityId: parseInt(data.activityId),
+        createdAt: Date.now(),
+      };
+
+      console.log("Creating new task:", newTask);
+
+      // Add the new task to the tasks list
+      setTasks((prevTasks) => [newTask, ...prevTasks]);
+
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Failed to create task:", error);
+      return Promise.reject(error);
+    }
+  };
+
+  // Handle editing a task
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
+    setIsEditTaskDialogOpen(true);
+  };
+
+  // Handle saving edited task
+  const handleSaveEditedTask = async (
+    taskId: number,
+    data: z.infer<typeof taskFormSchema>
+  ) => {
+    try {
+      // Validate the data using the schema
+      taskFormSchema.parse(data);
+
+      // Update the task in the tasks list
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                name: data.name,
+                projectId: parseInt(data.projectId),
+                activityId: parseInt(data.activityId),
+              }
+            : task
+        )
+      );
+
+      // If the edited task is the active task, update it
+      if (activeTask && activeTask.id === taskId) {
+        setActiveTask({
+          ...activeTask,
+          name: data.name,
+          projectId: parseInt(data.projectId),
+          activityId: parseInt(data.activityId),
+        });
+      }
+
+      console.log("Task updated:", taskId, data);
+
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      return Promise.reject(error);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row grow bg-background">
       <div className="w-full md:w-1/2 p-2 md:p-4 flex">
@@ -184,11 +287,31 @@ export default function TaskTracker({
           <TaskList
             tasks={tasks}
             projects={projects}
+            activities={activities}
             activeTaskId={activeTaskId}
             onSelectTask={handleSelectTask}
+            onAddTask={() => setIsAddTaskDialogOpen(true)}
+            onEditTask={handleEditTask}
           />
         </div>
       </div>
+
+      <AddTaskDialog
+        open={isAddTaskDialogOpen}
+        onOpenChange={setIsAddTaskDialogOpen}
+        projects={projects}
+        activities={activities}
+        onAddTask={handleAddTask}
+      />
+
+      <EditTaskDialog
+        open={isEditTaskDialogOpen}
+        onOpenChange={setIsEditTaskDialogOpen}
+        task={taskToEdit}
+        projects={projects}
+        activities={activities}
+        onEditTask={handleSaveEditedTask}
+      />
     </div>
   );
 }
