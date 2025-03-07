@@ -18,9 +18,7 @@ const nextConfig = {
     return config;
   },
   // Ensure Next.js doesn't try to bundle native modules
-  experimental: {
-    serverComponentsExternalPackages: ["@libsql/client"],
-  },
+  serverExternalPackages: ["@libsql/client"],
 };
 
 export default nextConfig;
