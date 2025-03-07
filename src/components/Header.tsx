@@ -30,6 +30,7 @@ import { ProjectDialog } from "./ProjectDialog";
 import { ActivityDialog } from "./ActivityDialog";
 import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
 import { Logo } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 type Project = {
   id: number;
@@ -135,13 +136,18 @@ export default function Header({
   };
 
   return (
-    <div className="w-full bg-secondary flex flex-row justify-between items-center px-3 py-2 md:px-4">
+    <div
+      className={`w-full flex flex-row justify-between items-center px-3 py-2 md:px-4 ${
+        projects.length === 0 ? "bg-secondary" : "bg-[hsl(var(--primary))]/10"
+      }`}
+    >
       <div className="container mx-auto max-w-7xl flex justify-between items-center">
         {/* logo */}
         <Logo size="md" />
 
         {/* main actions */}
         <div className="flex flex-row items-center gap-2">
+          <ThemeToggle />
           <DropdownDay
             selectedDate={selectedDate}
             onDateChange={onDateChange}
@@ -190,16 +196,19 @@ export default function Header({
                       <DropdownMenuItem
                         key={project.id}
                         onClick={() => handleOpenProjectDialog("edit", project)}
+                        className="py-2"
                       >
                         <div className="flex items-center w-full">
                           <span
-                            className="h-3 w-3 rounded-full mr-2 flex-shrink-0"
-                            style={{ backgroundColor: project.color }}
+                            className="h-4 w-4 rounded-full mr-2 flex-shrink-0"
+                            style={{
+                              backgroundColor: project.color,
+                              boxShadow: `0 0 0 1px rgba(0,0,0,0.1)`,
+                            }}
                           />
                           <span className="flex-grow truncate">
                             {project.name}
                           </span>
-                          <PencilIcon className="w-3 h-3 ml-2 text-muted-foreground" />
                         </div>
                       </DropdownMenuItem>
                     ))
@@ -254,9 +263,10 @@ export default function Header({
               </DropdownMenuSub>
 
               <DropdownMenuSeparator />
+              <DropdownMenuLabel>Settings</DropdownMenuLabel>
               <DropdownMenuItem disabled>
                 <SettingsIcon className="w-4 h-4 mr-2" />
-                <span>Settings</span>
+                <span>Preferences</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

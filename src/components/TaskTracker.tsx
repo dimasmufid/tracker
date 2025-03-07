@@ -15,6 +15,7 @@ import { normalizeTimestamp } from "@/utils/timeUtils";
 import * as z from "zod";
 import { startOfDay } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Define types that match the database schema
 interface DbTask {
@@ -76,6 +77,7 @@ interface TaskTrackerProps {
   initialActiveTask: DbTask | null;
   initialActivities: DbActivity[];
   selectedDate?: Date;
+  currentProjects?: Project[];
 }
 
 // Form schema for adding a task
@@ -92,6 +94,7 @@ export default function TaskTracker({
   initialActiveTask,
   initialActivities,
   selectedDate,
+  currentProjects,
 }: TaskTrackerProps) {
   // Convert all dates to timestamps for client-side use
   const [tasks, setTasks] = useState<Task[]>(() =>
@@ -101,13 +104,22 @@ export default function TaskTracker({
     }))
   );
 
-  const [projects] = useState<Project[]>(() =>
+  // Use currentProjects if provided, otherwise use initialProjects
+  const [projects, setProjects] = useState<Project[]>(() =>
     initialProjects.map((project) => ({
       ...project,
       description: project.description || undefined,
       createdAt: normalizeTimestamp(project.createdAt) || Date.now(),
     }))
   );
+
+  // Update projects when currentProjects changes
+  useEffect(() => {
+    if (currentProjects) {
+      setProjects(currentProjects);
+      console.log("Projects updated from parent:", currentProjects);
+    }
+  }, [currentProjects]);
 
   const [taskRecords, setTaskRecords] = useState<TaskRecord[]>(() =>
     initialTaskRecords.map((record) => ({
@@ -134,6 +146,8 @@ export default function TaskTracker({
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [isEditTaskDialogOpen, setIsEditTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+
+  const { setActiveProjectColor } = useTheme();
 
   // Debug logging
   useEffect(() => {
@@ -166,6 +180,22 @@ export default function TaskTracker({
       if (exists) {
         setActiveTask(selectedTask);
         setActiveTaskId(taskId);
+
+        // Get the project color for the selected task
+        const taskProject = projects.find(
+          (p) => p.id === selectedTask.projectId
+        );
+        if (taskProject) {
+          console.log(
+            "Setting active project color:",
+            taskProject.color,
+            "for project:",
+            taskProject
+          );
+          setActiveProjectColor(taskProject.color);
+        } else {
+          console.warn("Project not found for task:", selectedTask);
+        }
       } else {
         toast({
           title: "Task not found",
@@ -181,6 +211,7 @@ export default function TaskTracker({
   const handleClearActiveTask = () => {
     setActiveTask(null);
     setActiveTaskId(null);
+    setActiveProjectColor(null); // Reset the theme
   };
 
   // Start tracking a task
@@ -313,6 +344,25 @@ export default function TaskTracker({
       return Promise.reject(error);
     }
   };
+
+  // Update active project color when projects change
+  useEffect(() => {
+    if (activeTask && projects.length > 0) {
+      const taskProject = projects.find((p) => p.id === activeTask.projectId);
+      if (taskProject) {
+        console.log(
+          "Updating active project color from useEffect:",
+          taskProject.color
+        );
+        setActiveProjectColor(taskProject.color);
+      } else {
+        console.warn(
+          "Project not found for active task in useEffect:",
+          activeTask
+        );
+      }
+    }
+  }, [projects, activeTask, setActiveProjectColor]);
 
   return (
     <div className="flex flex-col md:flex-row grow bg-background">

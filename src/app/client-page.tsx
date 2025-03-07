@@ -11,6 +11,7 @@ import {
   editActivity,
   editProject,
 } from "@/lib/actions";
+
 // Type definitions
 type Project = {
   id: number;
@@ -18,6 +19,11 @@ type Project = {
   description?: string;
   color: string;
   createdAt: number;
+};
+
+type Activity = {
+  id: number;
+  name: string;
 };
 
 // Define types that match the database schema
@@ -69,24 +75,28 @@ export default function HomeClient({
     startOfDay(new Date())
   );
 
-  // Convert projects to the correct type
-  const formattedProjects: Project[] = initialProjects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    description: project.description || undefined,
-    color: project.color,
-    createdAt:
-      project.createdAt instanceof Date
-        ? project.createdAt.getTime()
-        : Number(project.createdAt),
-  }));
+  // Convert and maintain projects state
+  const [projects, setProjects] = useState<Project[]>(() =>
+    initialProjects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      description: project.description || undefined,
+      color: project.color,
+      createdAt:
+        project.createdAt instanceof Date
+          ? project.createdAt.getTime()
+          : Number(project.createdAt),
+    }))
+  );
 
-  // Convert activities to the correct type
-  const formattedActivities =
-    initialActivities?.map((activity) => ({
-      id: activity.id,
-      name: activity.name,
-    })) || [];
+  // Convert and maintain activities state
+  const [activities, setActivities] = useState<Activity[]>(
+    () =>
+      initialActivities?.map((activity) => ({
+        id: activity.id,
+        name: activity.name,
+      })) || []
+  );
 
   // Handle date change
   const handleDateChange = (date: Date) => {
@@ -95,32 +105,89 @@ export default function HomeClient({
 
   // These functions would normally interact with your backend
   const handleAddProject = async (data: ProjectFormValues) => {
-    await addProject(data);
+    try {
+      await addProject(data);
+      // Optimistically update the UI by adding a temporary project
+      // In a real app, you'd fetch the new project with its ID from the server
+      const newProject: Project = {
+        id: Math.floor(Math.random() * 1000) + 100, // Temporary ID
+        name: data.name,
+        description: data.description,
+        color: data.color,
+        createdAt: Date.now(),
+      };
+      setProjects((prev) => [...prev, newProject]);
+    } catch (error) {
+      console.error("Failed to add project:", error);
+    }
   };
 
   const handleEditProject = async (
     projectId: number,
     data: ProjectFormValues
   ) => {
-    await editProject(projectId, data);
+    try {
+      await editProject(projectId, data);
+      // Update the project in the local state
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                name: data.name,
+                description: data.description,
+                color: data.color,
+              }
+            : project
+        )
+      );
+      console.log("Project updated in client state:", projectId, data);
+    } catch (error) {
+      console.error("Failed to edit project:", error);
+    }
   };
 
   const handleAddActivity = async (data: ActivityFormValues) => {
-    await addActivity(data);
+    try {
+      await addActivity(data);
+      // Optimistically update the UI
+      const newActivity: Activity = {
+        id: Math.floor(Math.random() * 1000) + 100, // Temporary ID
+        name: data.name,
+      };
+      setActivities((prev) => [...prev, newActivity]);
+    } catch (error) {
+      console.error("Failed to add activity:", error);
+    }
   };
 
   const handleEditActivity = async (
     activityId: number,
     data: ActivityFormValues
   ) => {
-    await editActivity(activityId, data);
+    try {
+      await editActivity(activityId, data);
+      // Update the activity in the local state
+      setActivities((prev) =>
+        prev.map((activity) =>
+          activity.id === activityId
+            ? {
+                ...activity,
+                name: data.name,
+              }
+            : activity
+        )
+      );
+    } catch (error) {
+      console.error("Failed to edit activity:", error);
+    }
   };
 
   return (
     <main className="flex min-h-screen flex-col bg-background">
       <Header
-        projects={formattedProjects}
-        activities={formattedActivities}
+        projects={projects}
+        activities={activities}
         onAddProject={handleAddProject}
         onEditProject={handleEditProject}
         onAddActivity={handleAddActivity}
@@ -134,8 +201,9 @@ export default function HomeClient({
           initialProjects={initialProjects}
           initialTaskRecords={initialTaskRecords}
           initialActiveTask={initialActiveTask}
-          initialActivities={formattedActivities}
+          initialActivities={initialActivities}
           selectedDate={selectedDate}
+          currentProjects={projects} // Pass the current projects state
         />
       </div>
     </main>

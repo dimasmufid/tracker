@@ -153,22 +153,26 @@ export default function TaskList({
               >
                 <div
                   className="font-medium px-4 py-3 flex items-center justify-between"
-                  style={{ backgroundColor: `${project.color}15` }}
+                  style={{
+                    backgroundColor: `${project.color}20`,
+                    borderLeft: `4px solid ${project.color}`,
+                  }}
                 >
                   <div className="flex items-center">
                     <span
-                      className="h-3 w-3 rounded-full mr-2 flex-shrink-0"
+                      className="h-4 w-4 rounded-full mr-2 flex-shrink-0"
                       style={{ backgroundColor: project.color }}
                     ></span>
                     <span className="font-semibold">{project.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {tasksByProject[project.id]?.length || 0} tasks
-                    </Badge>
                     <Badge
                       variant="secondary"
-                      className="text-xs font-normal flex items-center gap-1"
+                      className={`text-xs font-normal flex items-center gap-1 ${
+                        tasksByProject[project.id]?.length === 0
+                          ? ""
+                          : `bg-${project.color}`
+                      }`}
                     >
                       <ClockIcon className="h-3 w-3" />
                       <ClientOnly fallback="--:--:--">

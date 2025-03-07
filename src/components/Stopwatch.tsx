@@ -187,7 +187,7 @@ export default function Stopwatch({
   }, [activeTask, taskRecords]);
 
   return (
-    <div className="timer-container active flex flex-col h-full">
+    <div className="timer-container flex flex-col h-full rounded-lg overflow-hidden">
       <div className="flex flex-col items-center justify-start gap-6 p-4 pt-8 md:pt-12">
         <div className="text-7xl md:text-8xl font-thin tracking-wider">
           <ClientOnly fallback="00:00:00">{formatDuration(time)}</ClientOnly>
@@ -198,7 +198,11 @@ export default function Stopwatch({
             onClick={toggleTimer}
             disabled={!activeTask}
             size="lg"
-            className="timer-button rounded-md px-12 py-6 text-lg font-medium transition-all duration-300 hover:scale-105 shadow-md border-none min-w-[180px] uppercase"
+            className="rounded-md px-12 py-6 text-lg font-medium transition-all duration-300 hover:scale-105 shadow-md border-none min-w-[180px] uppercase"
+            style={{
+              backgroundColor: activeTask ? `hsl(var(--primary))` : undefined,
+              color: activeTask ? `hsl(var(--primary-foreground))` : undefined,
+            }}
           >
             {isRunning ? "PAUSE" : "START"}
           </Button>
@@ -236,7 +240,17 @@ export default function Stopwatch({
         </div>
       </div>
 
-      <div className="mt-auto p-4 bg-accent/50 backdrop-blur-sm">
+      <div
+        className="mt-auto p-4 backdrop-blur-sm"
+        style={
+          activeTask
+            ? {
+                backgroundColor: `hsla(var(--primary)/0.15)`,
+                borderTop: `1px solid hsla(var(--primary)/0.2)`,
+              }
+            : { backgroundColor: "hsla(var(--accent)/0.5)" }
+        }
+      >
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <TimerResetIcon className="w-4 h-4 opacity-70" />
@@ -268,7 +282,11 @@ export default function Stopwatch({
                   return (
                     <div
                       key={record.id}
-                      className="flex justify-between items-center text-sm p-2 bg-accent/30 rounded"
+                      className="flex justify-between items-center text-sm p-2 rounded"
+                      style={{
+                        backgroundColor: `hsla(var(--primary)/0.1)`,
+                        borderLeft: `2px solid hsl(var(--primary))`,
+                      }}
                     >
                       <span>
                         {formatDistanceToNow(new Date(normalizedStartTime), {
@@ -276,22 +294,44 @@ export default function Stopwatch({
                         })}
                       </span>
                       <span className="font-medium">
-                        <ClientOnly fallback="--:--:--">
-                          {formatDuration(duration)}
-                        </ClientOnly>
+                        {formatDuration(duration)}
                       </span>
                     </div>
                   );
                 })
               ) : (
-                <div className="text-sm p-2 text-muted-foreground">
-                  No sessions recorded for this task yet
+                <div className="text-sm text-muted-foreground text-center py-2">
+                  No sessions recorded yet
                 </div>
               )
             ) : (
-              <div className="text-sm p-2 text-muted-foreground">
-                Select a task to view its sessions
-              </div>
+              taskRecords.slice(0, 5).map((record) => {
+                const normalizedStartTime =
+                  normalizeTimestamp(record.startedAt) || 0;
+                const duration = calculateDuration(
+                  record.startedAt,
+                  record.endedAt
+                );
+
+                return (
+                  <div
+                    key={record.id}
+                    className="flex justify-between items-center text-sm p-2 rounded"
+                    style={{
+                      backgroundColor: `hsla(var(--accent)/0.3)`,
+                    }}
+                  >
+                    <span>
+                      {formatDistanceToNow(new Date(normalizedStartTime), {
+                        addSuffix: true,
+                      })}
+                    </span>
+                    <span className="font-medium">
+                      {formatDuration(duration)}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
