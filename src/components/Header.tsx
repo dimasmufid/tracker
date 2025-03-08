@@ -34,6 +34,7 @@ import { ProjectDialog } from "@/components/ProjectDialog";
 import { ActivityDialog } from "@/components/ActivityDialog";
 import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
 import { Logo } from "@/components/Logo";
+import { UserMenu } from "@/components/user-menu";
 
 type Project = {
   id: number;
@@ -155,6 +156,7 @@ export default function Header({
             selectedDate={selectedDate}
             onDateChange={onDateChange}
           />
+          <UserMenu />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="ml-auto">
