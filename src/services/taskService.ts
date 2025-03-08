@@ -453,3 +453,71 @@ export async function checkTaskExists(taskId: number): Promise<boolean> {
     return false;
   }
 }
+
+export async function updateTask(
+  taskId: number,
+  name: string,
+  projectId: number,
+  activityId: number
+) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  // Verify that the task exists and belongs to the user
+  const taskExists = await db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+    .limit(1);
+
+  if (taskExists.length === 0) {
+    throw new Error(
+      `Task with ID ${taskId} does not exist or doesn't belong to the user`
+    );
+  }
+
+  // Verify that the project and activity exist and belong to the user
+  const projectExists = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+    .limit(1);
+
+  if (projectExists.length === 0) {
+    throw new Error(
+      `Project with ID ${projectId} does not exist or doesn't belong to the user`
+    );
+  }
+
+  const activityExists = await db
+    .select({ id: activities.id })
+    .from(activities)
+    .where(and(eq(activities.id, activityId), eq(activities.user_id, userId)))
+    .limit(1);
+
+  if (activityExists.length === 0) {
+    throw new Error(
+      `Activity with ID ${activityId} does not exist or doesn't belong to the user`
+    );
+  }
+
+  try {
+    const result = await db
+      .update(tasks)
+      .set({
+        name,
+        project_id: projectId,
+        activity_id: activityId,
+        // We don't update user_id as it should remain the same
+      })
+      .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+      .returning();
+
+    return result[0];
+  } catch (error) {
+    console.error("Error updating task:", error);
+    throw error;
+  }
+}

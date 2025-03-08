@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { startOfDay } from "date-fns";
 import Stopwatch from "./Stopwatch";
 import TaskList from "./TaskList";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -10,12 +11,12 @@ import {
   stopTaskTracking,
   createTask,
   checkTaskExists,
+  updateTask,
 } from "@/services/taskService";
 import { normalizeTimestamp } from "@/utils/timeUtils";
-import * as z from "zod";
-import { startOfDay } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
+import { TaskFormValues } from "@/lib/schemas";
 
 // Define types that match the database schema
 interface DbTask {
@@ -79,13 +80,6 @@ interface TaskTrackerProps {
   selectedDate?: Date;
   currentProjects?: Project[];
 }
-
-// Form schema for adding a task
-const taskFormSchema = z.object({
-  name: z.string().min(2).max(50),
-  project_id: z.string(),
-  activity_id: z.string(),
-});
 
 export default function TaskTracker({
   initialTasks,
@@ -381,11 +375,8 @@ export default function TaskTracker({
   };
 
   // Handle adding a new task
-  const handleAddTask = async (data: z.infer<typeof taskFormSchema>) => {
+  const handleAddTask = async (data: TaskFormValues) => {
     try {
-      // Validate the data using the schema
-      taskFormSchema.parse(data);
-
       // Create the task in the database
       const newTaskData = await createTask(
         data.name,
@@ -418,39 +409,34 @@ export default function TaskTracker({
   };
 
   // Handle saving edited task
-  const handleSaveEditedTask = async (
-    taskId: number,
-    data: z.infer<typeof taskFormSchema>
-  ) => {
+  const handleSaveEditedTask = async (taskId: number, data: TaskFormValues) => {
     try {
-      // Validate the data using the schema
-      taskFormSchema.parse(data);
+      // Update the task in the database
+      const updatedTaskData = await updateTask(
+        taskId,
+        data.name,
+        parseInt(data.project_id),
+        parseInt(data.activity_id)
+      );
+
+      // Convert the returned task to the client-side format
+      const updatedTask: Task = {
+        ...updatedTaskData,
+        created_at:
+          normalizeTimestamp(updatedTaskData.created_at) || Date.now(),
+      };
 
       // Update the task in the tasks list
       setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                name: data.name,
-                project_id: parseInt(data.project_id),
-                activity_id: parseInt(data.activity_id),
-              }
-            : task
-        )
+        prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
       );
 
       // If the edited task is the active task, update it
       if (activeTask && activeTask.id === taskId) {
-        setActiveTask({
-          ...activeTask,
-          name: data.name,
-          project_id: parseInt(data.project_id),
-          activity_id: parseInt(data.activity_id),
-        });
+        setActiveTask(updatedTask);
       }
 
-      console.log("Task updated:", taskId, data);
+      console.log("Task updated:", taskId, updatedTask);
 
       return Promise.resolve();
     } catch (error) {

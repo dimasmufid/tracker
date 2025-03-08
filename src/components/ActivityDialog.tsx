@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { ActivityFormValues, activityFormSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,16 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(2, {
-      message: "Activity name must be at least 2 characters.",
-    })
-    .max(50, {
-      message: "Activity name must not exceed 50 characters.",
-    }),
-});
+const formSchema = activityFormSchema.omit({ user_id: true });
 
 type Activity = {
   id: number;
@@ -46,7 +38,7 @@ interface ActivityDialogProps {
   activity: Activity | null;
   onSaveActivity: (
     activity: Activity | null,
-    data: z.infer<typeof formSchema>
+    data: ActivityFormValues
   ) => Promise<void>;
   mode: "add" | "edit";
 }
@@ -83,7 +75,23 @@ export function ActivityDialog({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
-      await onSaveActivity(activity, values);
+      // Get the current user ID from the session
+      const session = await fetch("/api/auth/session").then((res) =>
+        res.json()
+      );
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+
+      // Add user_id to the form values
+      const formData: ActivityFormValues = {
+        ...values,
+        user_id: userId,
+      };
+
+      await onSaveActivity(activity, formData);
       onOpenChange(false);
       toast({
         title: `Activity ${mode === "add" ? "created" : "updated"}`,

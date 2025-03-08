@@ -14,6 +14,7 @@ export const projectFormSchema = z.object({
   color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
     message: "Please enter a valid hex color code (e.g., #FF5733).",
   }),
+  user_id: z.string(),
 });
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -28,6 +29,7 @@ export const activityFormSchema = z.object({
     .max(50, {
       message: "Activity name must not exceed 50 characters.",
     }),
+  user_id: z.string(),
 });
 
 export type ActivityFormValues = z.infer<typeof activityFormSchema>;
@@ -48,6 +50,7 @@ export const taskFormSchema = z.object({
   activity_id: z.string({
     required_error: "Please select an activity.",
   }),
+  user_id: z.string(),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

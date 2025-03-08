@@ -4,6 +4,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { TaskFormValues, taskFormSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,22 +33,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(2, {
-      message: "Task name must be at least 2 characters.",
-    })
-    .max(50, {
-      message: "Task name must not exceed 50 characters.",
-    }),
-  project_id: z.string({
-    required_error: "Please select a project.",
-  }),
-  activity_id: z.string({
-    required_error: "Please select an activity.",
-  }),
-});
+const formSchema = taskFormSchema.omit({ user_id: true });
 
 type Project = {
   id: number;
@@ -67,7 +53,7 @@ interface AddTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   projects: Project[];
   activities: Activity[];
-  onAddTask: (data: z.infer<typeof formSchema>) => Promise<void>;
+  onAddTask: (data: TaskFormValues) => Promise<void>;
 }
 
 export function AddTaskDialog({
@@ -89,7 +75,23 @@ export function AddTaskDialog({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
-      await onAddTask(values);
+      // Get the current user ID from the session
+      const session = await fetch("/api/auth/session").then((res) =>
+        res.json()
+      );
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+
+      // Add user_id to the form values
+      const formData: TaskFormValues = {
+        ...values,
+        user_id: userId,
+      };
+
+      await onAddTask(formData);
       form.reset();
       onOpenChange(false);
       toast({

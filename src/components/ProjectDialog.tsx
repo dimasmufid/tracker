@@ -97,7 +97,23 @@ export function ProjectDialog({
   async function onSubmit(values: ProjectFormValues) {
     try {
       setIsSubmitting(true);
-      await onSaveProject(project, values);
+      // Get the current user ID from the session
+      const session = await fetch("/api/auth/session").then((res) =>
+        res.json()
+      );
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+
+      // Add user_id to the form values
+      const formData: ProjectFormValues = {
+        ...values,
+        user_id: userId,
+      };
+
+      await onSaveProject(project, formData);
       onOpenChange(false);
       toast({
         title: `Project ${mode === "add" ? "created" : "updated"}`,
