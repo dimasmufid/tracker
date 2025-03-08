@@ -15,9 +15,14 @@ import {
 interface DropdownDayProps {
   selectedDate?: Date;
   onDateChange: (date: Date) => void;
+  className?: string;
 }
 
-export function DropdownDay({ selectedDate, onDateChange }: DropdownDayProps) {
+export function DropdownDay({
+  selectedDate,
+  onDateChange,
+  className,
+}: DropdownDayProps) {
   // Initialize with today's date if no date is provided
   const [date, setDate] = React.useState<Date>(
     selectedDate || startOfDay(new Date())
@@ -41,21 +46,33 @@ export function DropdownDay({ selectedDate, onDateChange }: DropdownDayProps) {
     }
   };
 
+  // Determine if we're in a mobile context (inside dropdown menu)
+  const isMobile = className?.includes("sm:hidden");
+
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant={"outline"}
+          variant="outline"
+          size={isMobile ? "default" : "default"}
           className={cn(
-            "w-[200px] justify-start text-left font-normal hover:bg-primary-foreground",
-            !date && "text-muted-foreground"
+            "justify-start text-left font-normal",
+            isMobile ? "w-full" : "w-[180px] md:w-[200px]",
+            className
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date ? (
+            format(date, isMobile ? "MMM d, yyyy" : "PPP")
+          ) : (
+            <span>Pick a date</span>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent
+        className="w-auto p-0"
+        align={isMobile ? "center" : "start"}
+      >
         <Calendar
           mode="single"
           selected={date}

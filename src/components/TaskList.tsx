@@ -17,9 +17,9 @@ import {
 type Task = {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: number;
+  project_id: number;
+  activity_id: number;
+  created_at: number;
 };
 
 type Project = {
@@ -27,7 +27,7 @@ type Project = {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 };
 
 type Activity = {
@@ -37,9 +37,9 @@ type Activity = {
 
 type TaskRecord = {
   id: number;
-  taskId: number;
-  startedAt: number;
-  endedAt: number | null;
+  task_id: number;
+  started_at: number;
+  ended_at: number | null;
 };
 
 type TaskListProps = {
@@ -76,10 +76,10 @@ export default function TaskList({
     const recordMap: Record<number, TaskRecord[]> = {};
 
     taskRecords.forEach((record) => {
-      if (!recordMap[record.taskId]) {
-        recordMap[record.taskId] = [];
+      if (!recordMap[record.task_id]) {
+        recordMap[record.task_id] = [];
       }
-      recordMap[record.taskId].push(record);
+      recordMap[record.task_id].push(record);
     });
 
     return recordMap;
@@ -91,11 +91,11 @@ export default function TaskList({
 
     // Group tasks by project
     tasks.forEach((task) => {
-      const projectId = task.projectId;
-      if (!groupedTasks[projectId]) {
-        groupedTasks[projectId] = [];
+      const project_id = task.project_id;
+      if (!groupedTasks[project_id]) {
+        groupedTasks[project_id] = [];
       }
-      groupedTasks[projectId].push(task);
+      groupedTasks[project_id].push(task);
     });
 
     return groupedTasks;
@@ -122,7 +122,7 @@ export default function TaskList({
         const activeTask = tasks.find((task) => task.id === activeTaskId);
         if (activeTask) {
           // Add the project ID to the animated projects list
-          setAnimatedProjectIds([activeTask.projectId]);
+          setAnimatedProjectIds([activeTask.project_id]);
 
           // Clear the animation after a delay
           const timer = setTimeout(() => {
@@ -149,7 +149,7 @@ export default function TaskList({
     let totalTime = 0;
 
     taskRecordsForTask.forEach((record) => {
-      totalTime += calculateDuration(record.startedAt, record.endedAt);
+      totalTime += calculateDuration(record.started_at, record.ended_at);
     });
 
     return totalTime;
@@ -231,7 +231,7 @@ export default function TaskList({
               const projectTotalTime = calculateProjectTotalTime(project.id);
               const shouldAnimate = animatedProjectIds.includes(project.id);
               const activeProject =
-                tasks.find((t) => t.id === activeTaskId)?.projectId ===
+                tasks.find((t) => t.id === activeTaskId)?.project_id ===
                 project.id;
 
               return (
@@ -291,7 +291,7 @@ export default function TaskList({
                               onSelect={onSelectTask}
                               onClearSelection={onClearSelection}
                               onEdit={onEditTask}
-                              activityName={getActivityName(task.activityId)}
+                              activityName={getActivityName(task.activity_id)}
                               totalTime={taskTotalTime}
                             />
                           </div>

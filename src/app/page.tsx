@@ -34,26 +34,26 @@ export default async function Home() {
     try {
       // First check if there's an active record in the database
       const activeRecords = taskRecords.filter(
-        (record) => record.endedAt === null
+        (record) => record.ended_at === null
       );
 
       if (activeRecords.length > 0) {
         // If there are multiple active records, use the most recent one
         const mostRecentRecord = activeRecords.sort((a, b) => {
           const aTime =
-            a.startedAt instanceof Date
-              ? a.startedAt.getTime()
-              : Number(a.startedAt);
+            a.started_at instanceof Date
+              ? a.started_at.getTime()
+              : Number(a.started_at);
           const bTime =
-            b.startedAt instanceof Date
-              ? b.startedAt.getTime()
-              : Number(b.startedAt);
+            b.started_at instanceof Date
+              ? b.started_at.getTime()
+              : Number(b.started_at);
           return bTime - aTime;
         })[0];
 
         // Find the task associated with this record
         const taskForRecord = tasks.find(
-          (task) => task.id === mostRecentRecord.taskId
+          (task) => task.id === mostRecentRecord.task_id
         );
 
         if (taskForRecord) {
@@ -90,7 +90,7 @@ export default async function Home() {
       ];
 
       // Find the active project (the project of the active task)
-      const activeProjectId = activeTask.projectId;
+      const activeProjectId = activeTask.project_id;
 
       // Sort projects to put the active one first
       projects = [

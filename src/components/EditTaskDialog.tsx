@@ -41,10 +41,10 @@ const formSchema = z.object({
     .max(50, {
       message: "Task name must not exceed 50 characters.",
     }),
-  projectId: z.string({
+  project_id: z.string({
     required_error: "Please select a project.",
   }),
-  activityId: z.string({
+  activity_id: z.string({
     required_error: "Please select an activity.",
   }),
 });
@@ -52,9 +52,9 @@ const formSchema = z.object({
 type Task = {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: number;
+  project_id: number;
+  activity_id: number;
+  created_at: number;
 };
 
 type Project = {
@@ -62,7 +62,7 @@ type Project = {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 };
 
 type Activity = {
@@ -77,7 +77,7 @@ interface EditTaskDialogProps {
   projects: Project[];
   activities: Activity[];
   onEditTask: (
-    taskId: number,
+    task_id: number,
     data: z.infer<typeof formSchema>
   ) => Promise<void>;
 }
@@ -96,8 +96,8 @@ export function EditTaskDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: task?.name || "",
-      projectId: task?.projectId.toString() || "",
-      activityId: task?.activityId.toString() || "",
+      project_id: task?.project_id.toString() || "",
+      activity_id: task?.activity_id.toString() || "",
     },
   });
 
@@ -106,8 +106,8 @@ export function EditTaskDialog({
     if (task) {
       form.reset({
         name: task.name,
-        projectId: task.projectId.toString(),
-        activityId: task.activityId.toString(),
+        project_id: task.project_id.toString(),
+        activity_id: task.activity_id.toString(),
       });
     }
   }, [task, form]);
@@ -164,7 +164,7 @@ export function EditTaskDialog({
             />
             <FormField
               control={form.control}
-              name="projectId"
+              name="project_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project</FormLabel>
@@ -195,7 +195,7 @@ export function EditTaskDialog({
             />
             <FormField
               control={form.control}
-              name="activityId"
+              name="activity_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Activity</FormLabel>

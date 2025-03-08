@@ -16,9 +16,9 @@ import { useEffect, useState } from "react";
 type Task = {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: number;
+  project_id: number;
+  activity_id: number;
+  created_at: number;
 };
 
 type TaskItemProps = {

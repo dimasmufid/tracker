@@ -44,7 +44,7 @@ type Project = {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 };
 
 interface ProjectDialogProps {

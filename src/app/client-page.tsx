@@ -18,7 +18,7 @@ type Project = {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 };
 
 type Activity = {
@@ -30,9 +30,9 @@ type Activity = {
 interface DbTask {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: Date | number;
+  project_id: number;
+  activity_id: number;
+  created_at: Date | number;
 }
 
 interface DbProject {
@@ -40,20 +40,20 @@ interface DbProject {
   name: string;
   description: string | null;
   color: string;
-  createdAt: Date | number;
+  created_at: Date | number;
 }
 
 interface DbTaskRecord {
   id: number;
-  taskId: number;
-  startedAt: Date | number;
-  endedAt: Date | number | null;
+  task_id: number;
+  started_at: Date | number;
+  ended_at: Date | number | null;
 }
 
 interface DbActivity {
   id: number;
   name: string;
-  createdAt: Date | number;
+  created_at: Date | number;
 }
 
 interface HomeClientProps {
@@ -82,10 +82,10 @@ export default function HomeClient({
       name: project.name,
       description: project.description || undefined,
       color: project.color,
-      createdAt:
-        project.createdAt instanceof Date
-          ? project.createdAt.getTime()
-          : Number(project.createdAt),
+      created_at:
+        project.created_at instanceof Date
+          ? project.created_at.getTime()
+          : Number(project.created_at),
     }))
   );
 
@@ -114,7 +114,7 @@ export default function HomeClient({
         name: data.name,
         description: data.description,
         color: data.color,
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
       setProjects((prev) => [...prev, newProject]);
     } catch (error) {

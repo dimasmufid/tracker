@@ -2,19 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTheme as useNextTheme } from "next-themes";
 import {
   LineChart,
   MoreVertical,
   CalendarIcon,
-  SettingsIcon,
   FolderIcon,
   TagIcon,
   PlusCircleIcon,
   PencilIcon,
-  SunIcon,
-  MoonIcon,
-  LaptopIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +36,7 @@ type Project = {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 };
 
 type Activity = {
@@ -74,7 +69,6 @@ export default function Header({
   selectedDate,
 }: HeaderProps) {
   const router = useRouter();
-  const { setTheme } = useNextTheme();
 
   // Project dialog state
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
@@ -142,21 +136,30 @@ export default function Header({
 
   return (
     <div
-      className={`w-full flex flex-row justify-between items-center px-3 py-2 md:px-4 ${
+      className={`w-full flex flex-row justify-between items-center px-3 py-2 md:px-4 overflow-hidden ${
         projects.length === 0 ? "bg-secondary" : "bg-[hsl(var(--primary))]/10"
       }`}
     >
       <div className="container mx-auto max-w-7xl flex justify-between items-center">
         {/* logo */}
-        <Logo size="md" />
+        <Logo size="sm" className="md:hidden" />
+        <Logo size="md" className="hidden md:flex" />
 
         {/* main actions */}
-        <div className="flex flex-row items-center gap-2">
-          <DropdownDay
-            selectedDate={selectedDate}
-            onDateChange={onDateChange}
-          />
+        <div className="flex flex-row items-center gap-1 sm:gap-2">
+          {/* Date picker - hidden on mobile */}
+          <div className="hidden sm:block">
+            <DropdownDay
+              selectedDate={selectedDate}
+              onDateChange={onDateChange}
+              className="hidden sm:flex"
+            />
+          </div>
+
+          {/* User menu */}
           <UserMenu />
+
+          {/* More options dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="ml-auto">
@@ -164,6 +167,18 @@ export default function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {/* Show date picker on mobile */}
+              <div className="sm:hidden px-2 py-1.5">
+                <DropdownDay
+                  selectedDate={selectedDate}
+                  onDateChange={onDateChange}
+                  className="sm:hidden w-full"
+                />
+              </div>
+              <div className="sm:hidden">
+                <DropdownMenuSeparator />
+              </div>
+
               <DropdownMenuLabel>Navigation</DropdownMenuLabel>
               <DropdownMenuGroup>
                 <DropdownMenuItem
@@ -266,33 +281,6 @@ export default function Header({
                   )}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Preferences</DropdownMenuLabel>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <SunIcon className="w-4 h-4 mr-2" />
-                  <span>Theme</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => setTheme("light")}>
-                    <SunIcon className="w-4 h-4 mr-2" />
-                    <span>Light</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    <MoonIcon className="w-4 h-4 mr-2" />
-                    <span>Dark</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("system")}>
-                    <LaptopIcon className="w-4 h-4 mr-2" />
-                    <span>System</span>
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuItem disabled>
-                <SettingsIcon className="w-4 h-4 mr-2" />
-                <span>Settings</span>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

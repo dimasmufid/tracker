@@ -8,15 +8,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Settings } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Settings,
+  SunIcon,
+  MoonIcon,
+  LaptopIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 export function UserMenu() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { setTheme } = useTheme();
 
   if (!session?.user) {
     return null;
@@ -41,13 +53,20 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
+        <Button
+          variant="outline"
+          size="icon"
+          className="relative h-9 w-9 rounded-md"
+          aria-label="User menu"
+        >
+          <Avatar className="h-6 w-6">
             <AvatarImage
               src={session.user.image || ""}
               alt={session.user.name || "User"}
             />
-            <AvatarFallback>{getInitials(session.user.name)}</AvatarFallback>
+            <AvatarFallback className="text-xs bg-transparent">
+              {getInitials(session.user.name)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -66,6 +85,7 @@ export function UserMenu() {
         <DropdownMenuItem
           onClick={() => router.push("/profile")}
           className="cursor-pointer"
+          disabled
         >
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
@@ -73,10 +93,32 @@ export function UserMenu() {
         <DropdownMenuItem
           onClick={() => router.push("/settings")}
           className="cursor-pointer"
+          disabled
         >
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <SunIcon className="mr-2 h-4 w-4" />
+            <span>Theme</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              <SunIcon className="mr-2 h-4 w-4" />
+              <span>Light</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <MoonIcon className="mr-2 h-4 w-4" />
+              <span>Dark</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              <LaptopIcon className="mr-2 h-4 w-4" />
+              <span>System</span>
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />

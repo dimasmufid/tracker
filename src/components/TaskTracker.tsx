@@ -21,9 +21,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 interface DbTask {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: Date | number;
+  project_id: number;
+  activity_id: number;
+  created_at: Date | number;
 }
 
 interface DbProject {
@@ -31,23 +31,23 @@ interface DbProject {
   name: string;
   description: string | null;
   color: string;
-  createdAt: Date | number;
+  created_at: Date | number;
 }
 
 interface DbTaskRecord {
   id: number;
-  taskId: number;
-  startedAt: Date | number;
-  endedAt: Date | number | null;
+  task_id: number;
+  started_at: Date | number;
+  ended_at: Date | number | null;
 }
 
 // Define normalized types for client-side use
 interface Task {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: number;
+  project_id: number;
+  activity_id: number;
+  created_at: number;
 }
 
 interface Project {
@@ -55,14 +55,14 @@ interface Project {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 }
 
 interface TaskRecord {
   id: number;
-  taskId: number;
-  startedAt: number;
-  endedAt: number | null;
+  task_id: number;
+  started_at: number;
+  ended_at: number | null;
 }
 
 interface DbActivity {
@@ -83,8 +83,8 @@ interface TaskTrackerProps {
 // Form schema for adding a task
 const taskFormSchema = z.object({
   name: z.string().min(2).max(50),
-  projectId: z.string(),
-  activityId: z.string(),
+  project_id: z.string(),
+  activity_id: z.string(),
 });
 
 export default function TaskTracker({
@@ -100,7 +100,7 @@ export default function TaskTracker({
   const [tasks, setTasks] = useState<Task[]>(() =>
     initialTasks.map((task) => ({
       ...task,
-      createdAt: normalizeTimestamp(task.createdAt) || Date.now(),
+      created_at: normalizeTimestamp(task.created_at) || Date.now(),
     }))
   );
 
@@ -109,7 +109,7 @@ export default function TaskTracker({
     initialProjects.map((project) => ({
       ...project,
       description: project.description || undefined,
-      createdAt: normalizeTimestamp(project.createdAt) || Date.now(),
+      created_at: normalizeTimestamp(project.created_at) || Date.now(),
     }))
   );
 
@@ -124,8 +124,8 @@ export default function TaskTracker({
   const [taskRecords, setTaskRecords] = useState<TaskRecord[]>(() =>
     initialTaskRecords.map((record) => ({
       ...record,
-      startedAt: normalizeTimestamp(record.startedAt) || Date.now(),
-      endedAt: normalizeTimestamp(record.endedAt),
+      started_at: normalizeTimestamp(record.started_at) || Date.now(),
+      ended_at: normalizeTimestamp(record.ended_at),
     }))
   );
 
@@ -133,8 +133,8 @@ export default function TaskTracker({
     initialActiveTask
       ? {
           ...initialActiveTask,
-          createdAt:
-            normalizeTimestamp(initialActiveTask.createdAt) || Date.now(),
+          created_at:
+            normalizeTimestamp(initialActiveTask.created_at) || Date.now(),
         }
       : null
   );
@@ -152,12 +152,12 @@ export default function TaskTracker({
   // Verify active task state on initialization
   useEffect(() => {
     // Check if there's an active record in the taskRecords
-    const activeRecord = taskRecords.find((record) => record.endedAt === null);
+    const activeRecord = taskRecords.find((record) => record.ended_at === null);
 
     if (activeRecord) {
       // Find the task associated with this record
       const taskForRecord = tasks.find(
-        (task) => task.id === activeRecord.taskId
+        (task) => task.id === activeRecord.task_id
       );
 
       if (taskForRecord) {
@@ -174,7 +174,7 @@ export default function TaskTracker({
 
           // Update the project color
           const taskProject = projects.find(
-            (p) => p.id === taskForRecord.projectId
+            (p) => p.id === taskForRecord.project_id
           );
           if (taskProject) {
             setActiveProjectColor(taskProject.color);
@@ -184,7 +184,7 @@ export default function TaskTracker({
     } else if (activeTask) {
       // If there's no active record but we have an active task, check if it should be active
       const hasActiveRecordForTask = taskRecords.some(
-        (record) => record.taskId === activeTask.id && record.endedAt === null
+        (record) => record.task_id === activeTask.id && record.ended_at === null
       );
 
       if (!hasActiveRecordForTask) {
@@ -210,7 +210,7 @@ export default function TaskTracker({
     const endOfSelectedDay = startOfSelectedDay + 24 * 60 * 60 * 1000 - 1;
 
     return tasks.filter((task) => {
-      const taskCreatedAt = task.createdAt;
+      const taskCreatedAt = task.created_at;
       return (
         taskCreatedAt >= startOfSelectedDay && taskCreatedAt <= endOfSelectedDay
       );
@@ -230,7 +230,7 @@ export default function TaskTracker({
             // Check if the current active task is being tracked
             const isCurrentlyTracking = taskRecords.some(
               (record) =>
-                record.taskId === activeTask.id && record.endedAt === null
+                record.task_id === activeTask.id && record.ended_at === null
             );
 
             if (isCurrentlyTracking) {
@@ -265,7 +265,7 @@ export default function TaskTracker({
 
         // Get the project color for the selected task
         const taskProject = projects.find(
-          (p) => p.id === selectedTask.projectId
+          (p) => p.id === selectedTask.project_id
         );
 
         if (taskProject) {
@@ -293,7 +293,7 @@ export default function TaskTracker({
         try {
           // Check if the task is already being tracked
           const isAlreadyTracking = taskRecords.some(
-            (record) => record.taskId === taskId && record.endedAt === null
+            (record) => record.task_id === taskId && record.ended_at === null
           );
 
           if (!isAlreadyTracking) {
@@ -336,8 +336,8 @@ export default function TaskTracker({
         // Add the new record to the list
         const newRecord: TaskRecord = {
           ...result[0],
-          startedAt: normalizeTimestamp(result[0].startedAt) || Date.now(),
-          endedAt: normalizeTimestamp(result[0].endedAt),
+          started_at: normalizeTimestamp(result[0].started_at) || Date.now(),
+          ended_at: normalizeTimestamp(result[0].ended_at),
         };
         console.log("New record created:", newRecord);
         setTaskRecords((prev) => [newRecord, ...prev]);
@@ -360,8 +360,8 @@ export default function TaskTracker({
         // Update the record in the list
         const updatedRecord: TaskRecord = {
           ...result[0],
-          startedAt: normalizeTimestamp(result[0].startedAt) || Date.now(),
-          endedAt: normalizeTimestamp(result[0].endedAt),
+          started_at: normalizeTimestamp(result[0].started_at) || Date.now(),
+          ended_at: normalizeTimestamp(result[0].ended_at),
         };
         console.log("Record updated:", updatedRecord);
         setTaskRecords((prev) =>
@@ -389,14 +389,14 @@ export default function TaskTracker({
       // Create the task in the database
       const newTaskData = await createTask(
         data.name,
-        parseInt(data.projectId),
-        parseInt(data.activityId)
+        parseInt(data.project_id),
+        parseInt(data.activity_id)
       );
 
       // Convert the returned task to the client-side format
       const newTask: Task = {
         ...newTaskData,
-        createdAt: normalizeTimestamp(newTaskData.createdAt) || Date.now(),
+        created_at: normalizeTimestamp(newTaskData.created_at) || Date.now(),
       };
 
       console.log("Task created:", newTask);
@@ -433,8 +433,8 @@ export default function TaskTracker({
             ? {
                 ...task,
                 name: data.name,
-                projectId: parseInt(data.projectId),
-                activityId: parseInt(data.activityId),
+                project_id: parseInt(data.project_id),
+                activity_id: parseInt(data.activity_id),
               }
             : task
         )
@@ -445,8 +445,8 @@ export default function TaskTracker({
         setActiveTask({
           ...activeTask,
           name: data.name,
-          projectId: parseInt(data.projectId),
-          activityId: parseInt(data.activityId),
+          project_id: parseInt(data.project_id),
+          activity_id: parseInt(data.activity_id),
         });
       }
 
@@ -462,7 +462,7 @@ export default function TaskTracker({
   // Update active project color when projects change
   useEffect(() => {
     if (activeTask && projects.length > 0) {
-      const taskProject = projects.find((p) => p.id === activeTask.projectId);
+      const taskProject = projects.find((p) => p.id === activeTask.project_id);
       if (taskProject) {
         console.log(
           "Updating active project color from useEffect:",

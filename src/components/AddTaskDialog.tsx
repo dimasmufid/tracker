@@ -41,10 +41,10 @@ const formSchema = z.object({
     .max(50, {
       message: "Task name must not exceed 50 characters.",
     }),
-  projectId: z.string({
+  project_id: z.string({
     required_error: "Please select a project.",
   }),
-  activityId: z.string({
+  activity_id: z.string({
     required_error: "Please select an activity.",
   }),
 });
@@ -54,7 +54,7 @@ type Project = {
   name: string;
   description?: string;
   color: string;
-  createdAt: number;
+  created_at: number;
 };
 
 type Activity = {
@@ -137,7 +137,7 @@ export function AddTaskDialog({
             />
             <FormField
               control={form.control}
-              name="projectId"
+              name="project_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project</FormLabel>
@@ -167,7 +167,7 @@ export function AddTaskDialog({
             />
             <FormField
               control={form.control}
-              name="activityId"
+              name="activity_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Activity</FormLabel>

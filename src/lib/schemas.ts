@@ -42,10 +42,10 @@ export const taskFormSchema = z.object({
     .max(50, {
       message: "Task name must not exceed 50 characters.",
     }),
-  projectId: z.string({
+  project_id: z.string({
     required_error: "Please select a project.",
   }),
-  activityId: z.string({
+  activity_id: z.string({
     required_error: "Please select an activity.",
   }),
 });

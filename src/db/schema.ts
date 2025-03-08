@@ -83,37 +83,37 @@ export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
   color: text("color").notNull().default("#FFFFFF"),
-  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
+  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 });
 
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 });
 
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  projectId: integer("project_id")
+  project_id: integer("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
-  activityId: integer("activity_id")
+  activity_id: integer("activity_id")
     .notNull()
     .references(() => activities.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 });
 
 export const taskRecords = pgTable("task_records", {
   id: serial("id").primaryKey(),
-  taskId: integer("task_id")
+  task_id: integer("task_id")
     .notNull()
     .references(() => tasks.id, { onDelete: "cascade" }),
-  startedAt: timestamp("started_at").notNull().defaultNow(),
-  endedAt: timestamp("ended_at"),
-  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
+  started_at: timestamp("started_at").notNull().defaultNow(),
+  ended_at: timestamp("ended_at"),
+  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 });

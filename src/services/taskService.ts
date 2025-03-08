@@ -12,8 +12,8 @@ export async function getTasks() {
   return await db
     .select()
     .from(tasks)
-    .where(eq(tasks.userId, userId))
-    .orderBy(desc(tasks.createdAt));
+    .where(eq(tasks.user_id, userId))
+    .orderBy(desc(tasks.created_at));
 }
 
 export async function getProjects() {
@@ -23,8 +23,8 @@ export async function getProjects() {
   return await db
     .select()
     .from(projects)
-    .where(eq(projects.userId, userId))
-    .orderBy(desc(projects.createdAt));
+    .where(eq(projects.user_id, userId))
+    .orderBy(desc(projects.created_at));
 }
 
 export async function getActivities() {
@@ -34,8 +34,8 @@ export async function getActivities() {
   return await db
     .select()
     .from(activities)
-    .where(eq(activities.userId, userId))
-    .orderBy(desc(activities.createdAt));
+    .where(eq(activities.user_id, userId))
+    .orderBy(desc(activities.created_at));
 }
 
 export async function getTaskRecords(taskId?: number) {
@@ -47,16 +47,16 @@ export async function getTaskRecords(taskId?: number) {
       .select()
       .from(taskRecords)
       .where(
-        and(eq(taskRecords.taskId, taskId), eq(taskRecords.userId, userId))
+        and(eq(taskRecords.task_id, taskId), eq(taskRecords.user_id, userId))
       )
-      .orderBy(desc(taskRecords.startedAt));
+      .orderBy(desc(taskRecords.started_at));
   }
 
   return await db
     .select()
     .from(taskRecords)
-    .where(eq(taskRecords.userId, userId))
-    .orderBy(desc(taskRecords.startedAt));
+    .where(eq(taskRecords.user_id, userId))
+    .orderBy(desc(taskRecords.started_at));
 }
 
 export async function startTaskTracking(taskId: number) {
@@ -71,7 +71,7 @@ export async function startTaskTracking(taskId: number) {
   const taskExists = await db
     .select({ id: tasks.id })
     .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+    .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
     .limit(1);
 
   if (taskExists.length === 0) {
@@ -87,14 +87,14 @@ export async function startTaskTracking(taskId: number) {
   const activeRecord = await db
     .select()
     .from(taskRecords)
-    .where(and(isNull(taskRecords.endedAt), eq(taskRecords.userId, userId)))
+    .where(and(isNull(taskRecords.ended_at), eq(taskRecords.user_id, userId)))
     .limit(1);
 
   // If there's an active session, end it first
   if (activeRecord.length > 0) {
     await db
       .update(taskRecords)
-      .set({ endedAt: new Date() })
+      .set({ ended_at: new Date() })
       .where(eq(taskRecords.id, activeRecord[0].id));
   }
 
@@ -103,9 +103,9 @@ export async function startTaskTracking(taskId: number) {
     const result = await db
       .insert(taskRecords)
       .values({
-        taskId,
-        startedAt: new Date(),
-        userId,
+        task_id: taskId,
+        started_at: new Date(),
+        user_id: userId,
       })
       .returning();
 
@@ -132,12 +132,12 @@ export async function stopTaskTracking(taskId: number) {
       .from(taskRecords)
       .where(
         and(
-          eq(taskRecords.taskId, taskId),
-          isNull(taskRecords.endedAt),
-          eq(taskRecords.userId, userId)
+          eq(taskRecords.task_id, taskId),
+          isNull(taskRecords.ended_at),
+          eq(taskRecords.user_id, userId)
         )
       )
-      .orderBy(desc(taskRecords.startedAt)) // Get the most recent one if multiple
+      .orderBy(desc(taskRecords.started_at)) // Get the most recent one if multiple
       .limit(1);
 
     if (activeRecord.length === 0) {
@@ -147,7 +147,7 @@ export async function stopTaskTracking(taskId: number) {
       const taskExists = await db
         .select({ id: tasks.id })
         .from(tasks)
-        .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+        .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
         .limit(1);
 
       if (taskExists.length === 0) {
@@ -166,7 +166,7 @@ export async function stopTaskTracking(taskId: number) {
       // End the tracking session
       const result = await db
         .update(taskRecords)
-        .set({ endedAt: new Date() })
+        .set({ ended_at: new Date() })
         .where(eq(taskRecords.id, activeRecord[0].id))
         .returning();
 
@@ -191,8 +191,8 @@ export async function getActiveTask() {
     const activeRecords = await db
       .select()
       .from(taskRecords)
-      .where(and(isNull(taskRecords.endedAt), eq(taskRecords.userId, userId)))
-      .orderBy(desc(taskRecords.startedAt)); // Get the most recent ones
+      .where(and(isNull(taskRecords.ended_at), eq(taskRecords.user_id, userId)))
+      .orderBy(desc(taskRecords.started_at)); // Get the most recent ones
 
     if (activeRecords.length === 0) {
       console.log("No active records found");
@@ -212,7 +212,7 @@ export async function getActiveTask() {
       for (let i = 1; i < activeRecords.length; i++) {
         await db
           .update(taskRecords)
-          .set({ endedAt: new Date() })
+          .set({ ended_at: new Date() })
           .where(eq(taskRecords.id, activeRecords[i].id));
 
         console.log(`Closed orphaned active record: ${activeRecords[i].id}`);
@@ -225,17 +225,19 @@ export async function getActiveTask() {
       const task = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, activeRecord.taskId), eq(tasks.userId, userId)))
+        .where(
+          and(eq(tasks.id, activeRecord.task_id), eq(tasks.user_id, userId))
+        )
         .limit(1);
 
       // If the task doesn't exist but we have an active record, close the record
       if (task.length === 0) {
         console.warn(
-          `Active record found for non-existent task ID: ${activeRecord.taskId}. Closing record.`
+          `Active record found for non-existent task ID: ${activeRecord.task_id}. Closing record.`
         );
         await db
           .update(taskRecords)
-          .set({ endedAt: new Date() })
+          .set({ ended_at: new Date() })
           .where(eq(taskRecords.id, activeRecord.id));
         return null;
       }
@@ -249,17 +251,17 @@ export async function getActiveTask() {
     const task = await db
       .select()
       .from(tasks)
-      .where(and(eq(tasks.id, activeRecord.taskId), eq(tasks.userId, userId)))
+      .where(and(eq(tasks.id, activeRecord.task_id), eq(tasks.user_id, userId)))
       .limit(1);
 
     // If the task doesn't exist but we have an active record, close the record
     if (task.length === 0) {
       console.warn(
-        `Active record found for non-existent task ID: ${activeRecord.taskId}. Closing record.`
+        `Active record found for non-existent task ID: ${activeRecord.task_id}. Closing record.`
       );
       await db
         .update(taskRecords)
-        .set({ endedAt: new Date() })
+        .set({ ended_at: new Date() })
         .where(eq(taskRecords.id, activeRecord.id));
       return null;
     }
@@ -285,7 +287,7 @@ export async function calculateTaskTotalTime(taskId: number) {
     const taskExists = await db
       .select({ id: tasks.id })
       .from(tasks)
-      .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+      .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
       .limit(1);
 
     if (taskExists.length === 0) {
@@ -297,15 +299,15 @@ export async function calculateTaskTotalTime(taskId: number) {
       .select()
       .from(taskRecords)
       .where(
-        and(eq(taskRecords.taskId, taskId), eq(taskRecords.userId, userId))
+        and(eq(taskRecords.task_id, taskId), eq(taskRecords.user_id, userId))
       );
 
     // Calculate total time
     let totalTime = 0;
     records.forEach((record) => {
-      const startTime = normalizeTimestamp(record.startedAt) || 0;
-      const endTime = record.endedAt
-        ? normalizeTimestamp(record.endedAt) || 0
+      const startTime = normalizeTimestamp(record.started_at) || 0;
+      const endTime = record.ended_at
+        ? normalizeTimestamp(record.ended_at) || 0
         : Date.now();
       totalTime += Math.max(0, endTime - startTime);
     });
@@ -331,7 +333,7 @@ export async function calculateProjectTotalTime(projectId: number) {
     const projectExists = await db
       .select({ id: projects.id })
       .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+      .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
       .limit(1);
 
     if (projectExists.length === 0) {
@@ -342,7 +344,7 @@ export async function calculateProjectTotalTime(projectId: number) {
     const projectTasks = await db
       .select()
       .from(tasks)
-      .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, userId)));
+      .where(and(eq(tasks.project_id, projectId), eq(tasks.user_id, userId)));
 
     // Get all task records for these tasks in a single query
     const taskIds = projectTasks.map((task) => task.id);
@@ -358,18 +360,18 @@ export async function calculateProjectTotalTime(projectId: number) {
       .where(
         and(
           taskIds.length === 1
-            ? eq(taskRecords.taskId, taskIds[0])
-            : inArray(taskRecords.taskId, taskIds),
-          eq(taskRecords.userId, userId)
+            ? eq(taskRecords.task_id, taskIds[0])
+            : inArray(taskRecords.task_id, taskIds),
+          eq(taskRecords.user_id, userId)
         )
       );
 
     // Calculate total time
     let totalTime = 0;
     allRecords.forEach((record) => {
-      const startTime = normalizeTimestamp(record.startedAt) || 0;
-      const endTime = record.endedAt
-        ? normalizeTimestamp(record.endedAt) || 0
+      const startTime = normalizeTimestamp(record.started_at) || 0;
+      const endTime = record.ended_at
+        ? normalizeTimestamp(record.ended_at) || 0
         : Date.now();
       totalTime += Math.max(0, endTime - startTime);
     });
@@ -395,7 +397,7 @@ export async function createTask(
   const projectExists = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
     .limit(1);
 
   if (projectExists.length === 0) {
@@ -407,7 +409,7 @@ export async function createTask(
   const activityExists = await db
     .select({ id: activities.id })
     .from(activities)
-    .where(and(eq(activities.id, activityId), eq(activities.userId, userId)))
+    .where(and(eq(activities.id, activityId), eq(activities.user_id, userId)))
     .limit(1);
 
   if (activityExists.length === 0) {
@@ -421,9 +423,9 @@ export async function createTask(
       .insert(tasks)
       .values({
         name,
-        projectId,
-        activityId,
-        userId,
+        project_id: projectId,
+        activity_id: activityId,
+        user_id: userId,
       })
       .returning();
 
@@ -442,7 +444,7 @@ export async function checkTaskExists(taskId: number): Promise<boolean> {
     const result = await db
       .select({ id: tasks.id })
       .from(tasks)
-      .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+      .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
       .limit(1);
 
     return result.length > 0;

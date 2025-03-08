@@ -16,16 +16,16 @@ import { toast } from "@/components/ui/use-toast";
 interface Task {
   id: number;
   name: string;
-  projectId: number;
-  activityId: number;
-  createdAt: number;
+  project_id: number;
+  activity_id: number;
+  created_at: number;
 }
 
 interface TaskRecord {
   id: number;
-  taskId: number;
-  startedAt: number;
-  endedAt: number | null;
+  task_id: number;
+  started_at: number;
+  ended_at: number | null;
 }
 
 interface StopwatchProps {
@@ -51,7 +51,7 @@ export default function Stopwatch({
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Find the current active record - do this calculation outside of effects
-  const activeRecord = taskRecords?.find((record) => record.endedAt === null);
+  const activeRecord = taskRecords?.find((record) => record.ended_at === null);
 
   // One-time initialization after component mounts
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function Stopwatch({
 
     if (shouldBeRunning) {
       const normalizedStartTime =
-        normalizeTimestamp(activeRecord.startedAt) || Date.now();
+        normalizeTimestamp(activeRecord.started_at) || Date.now();
       const elapsed = Date.now() - normalizedStartTime;
       setTime(Math.max(0, elapsed));
     }
@@ -77,9 +77,9 @@ export default function Stopwatch({
       activeRecord: activeRecord
         ? {
             id: activeRecord.id,
-            taskId: activeRecord.taskId,
-            startedAt: normalizeTimestamp(activeRecord.startedAt),
-            endedAt: activeRecord.endedAt,
+            task_id: activeRecord.task_id,
+            started_at: normalizeTimestamp(activeRecord.started_at),
+            ended_at: activeRecord.ended_at,
           }
         : null,
       isRunning: shouldBeRunning,
@@ -87,7 +87,7 @@ export default function Stopwatch({
         ? Math.max(
             0,
             Date.now() -
-              (normalizeTimestamp(activeRecord?.startedAt) || Date.now())
+              (normalizeTimestamp(activeRecord?.started_at) || Date.now())
           )
         : 0,
     });
@@ -101,7 +101,7 @@ export default function Stopwatch({
     const hasActiveRecord =
       activeTask &&
       taskRecords?.some(
-        (record) => record.taskId === activeTask.id && record.endedAt === null
+        (record) => record.task_id === activeTask.id && record.ended_at === null
       );
 
     // If the UI state doesn't match the database state, correct it
@@ -121,11 +121,12 @@ export default function Stopwatch({
       // If we corrected to running, update the time
       if (hasActiveRecord && activeTask) {
         const activeRec = taskRecords.find(
-          (record) => record.taskId === activeTask.id && record.endedAt === null
+          (record) =>
+            record.task_id === activeTask.id && record.ended_at === null
         );
         if (activeRec) {
           const normalizedStartTime =
-            normalizeTimestamp(activeRec.startedAt) || Date.now();
+            normalizeTimestamp(activeRec.started_at) || Date.now();
           const elapsed = Date.now() - normalizedStartTime;
           setTime(Math.max(0, elapsed));
         }
@@ -145,7 +146,7 @@ export default function Stopwatch({
     const todayTimestamp = today.getTime();
 
     const todayRecords = taskRecords.filter((record) => {
-      const normalizedStartTime = normalizeTimestamp(record.startedAt);
+      const normalizedStartTime = normalizeTimestamp(record.started_at);
       return (
         normalizedStartTime !== null && normalizedStartTime >= todayTimestamp
       );
@@ -153,7 +154,7 @@ export default function Stopwatch({
 
     let total = 0;
     todayRecords.forEach((record) => {
-      total += calculateDuration(record.startedAt, record.endedAt);
+      total += calculateDuration(record.started_at, record.ended_at);
     });
 
     setTodayTotal(total);
@@ -209,7 +210,7 @@ export default function Stopwatch({
     try {
       // Get the current state from the database
       const hasActiveRecord = taskRecords?.some(
-        (record) => record.taskId === activeTask.id && record.endedAt === null
+        (record) => record.task_id === activeTask.id && record.ended_at === null
       );
 
       // If the UI state doesn't match the database state, correct it
@@ -238,11 +239,11 @@ export default function Stopwatch({
         if (hasActiveRecord) {
           const activeRec = taskRecords.find(
             (record) =>
-              record.taskId === activeTask.id && record.endedAt === null
+              record.task_id === activeTask.id && record.ended_at === null
           );
           if (activeRec) {
             const normalizedStartTime =
-              normalizeTimestamp(activeRec.startedAt) || Date.now();
+              normalizeTimestamp(activeRec.started_at) || Date.now();
             const elapsed = Date.now() - normalizedStartTime;
             setTime(Math.max(0, elapsed));
           }
@@ -275,7 +276,7 @@ export default function Stopwatch({
 
         // Check if there's any active record for any task
         const anyActiveRecord = taskRecords?.some(
-          (record) => record.endedAt === null
+          (record) => record.ended_at === null
         );
 
         if (anyActiveRecord) {
@@ -285,8 +286,8 @@ export default function Stopwatch({
 
           // Find the task with the active record
           const activeRecordTaskId = taskRecords.find(
-            (record) => record.endedAt === null
-          )?.taskId;
+            (record) => record.ended_at === null
+          )?.task_id;
 
           if (activeRecordTaskId && activeRecordTaskId !== activeTask.id) {
             // Stop the other task's tracking first
@@ -333,7 +334,7 @@ export default function Stopwatch({
     // Only update time if we're running and there's an active record
     if (isRunning && activeRecord) {
       const normalizedStartTime =
-        normalizeTimestamp(activeRecord.startedAt) || Date.now();
+        normalizeTimestamp(activeRecord.started_at) || Date.now();
       const elapsed = Date.now() - normalizedStartTime;
       // Ensure we don't set negative time
       setTime(Math.max(0, elapsed));
@@ -354,24 +355,24 @@ export default function Stopwatch({
         activeRecord: activeRecord
           ? {
               id: activeRecord.id,
-              taskId: activeRecord.taskId,
-              startedAt: normalizeTimestamp(activeRecord.startedAt),
+              task_id: activeRecord.task_id,
+              started_at: normalizeTimestamp(activeRecord.started_at),
               elapsed: activeRecord
                 ? Date.now() -
-                  (normalizeTimestamp(activeRecord.startedAt) || Date.now())
+                  (normalizeTimestamp(activeRecord.started_at) || Date.now())
                 : null,
             }
           : null,
         firstRecord: {
           id: firstRecord.id,
-          taskId: firstRecord.taskId,
-          startedAt: normalizeTimestamp(firstRecord.startedAt),
-          endedAt: firstRecord.endedAt
-            ? normalizeTimestamp(firstRecord.endedAt)
+          task_id: firstRecord.task_id,
+          started_at: normalizeTimestamp(firstRecord.started_at),
+          ended_at: firstRecord.ended_at
+            ? normalizeTimestamp(firstRecord.ended_at)
             : null,
           duration: calculateDuration(
-            firstRecord.startedAt,
-            firstRecord.endedAt
+            firstRecord.started_at,
+            firstRecord.ended_at
           ),
         },
       });
@@ -384,7 +385,7 @@ export default function Stopwatch({
       return []; // Return empty array when no task is selected
     }
     // Only show records for the active task
-    return taskRecords.filter((record) => record.taskId === activeTask.id);
+    return taskRecords.filter((record) => record.task_id === activeTask.id);
   }, [activeTask, taskRecords]);
 
   return (
@@ -474,10 +475,10 @@ export default function Stopwatch({
               filteredTaskRecords.length > 0 ? (
                 filteredTaskRecords.slice(0, 5).map((record) => {
                   const normalizedStartTime =
-                    normalizeTimestamp(record.startedAt) || 0;
+                    normalizeTimestamp(record.started_at) || 0;
                   const duration = calculateDuration(
-                    record.startedAt,
-                    record.endedAt
+                    record.started_at,
+                    record.ended_at
                   );
 
                   return (
@@ -508,10 +509,10 @@ export default function Stopwatch({
             ) : (
               taskRecords.slice(0, 5).map((record) => {
                 const normalizedStartTime =
-                  normalizeTimestamp(record.startedAt) || 0;
+                  normalizeTimestamp(record.started_at) || 0;
                 const duration = calculateDuration(
-                  record.startedAt,
-                  record.endedAt
+                  record.started_at,
+                  record.ended_at
                 );
 
                 return (
