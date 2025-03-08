@@ -82,7 +82,7 @@ export default function Stopwatch({
           )
         : 0,
     });
-  }, [activeRecord, isInitialized]);
+  }, [activeRecord, activeTask, isInitialized]);
 
   // Update document title with timer state
   useDocumentTitle(time, isRunning, activeTask?.name);

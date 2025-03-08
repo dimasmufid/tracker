@@ -6,6 +6,11 @@ import {
   getActiveTask,
   getActivities,
 } from "@/services/taskService";
+import { tasks } from "@/db/schema";
+import { InferSelectModel } from "drizzle-orm";
+
+// Define the Task type based on the database schema
+type Task = InferSelectModel<typeof tasks>;
 
 export default async function Home() {
   try {
@@ -16,7 +21,7 @@ export default async function Home() {
     const taskRecords = await getTaskRecords();
 
     // Get the active task, but handle potential errors
-    let activeTask = null;
+    let activeTask: Task | null = null;
     try {
       activeTask = await getActiveTask();
     } catch (error) {
@@ -28,8 +33,8 @@ export default async function Home() {
     if (activeTask) {
       // Sort tasks to put the active one first
       tasks = [
-        ...tasks.filter((task) => task.id === activeTask.id),
-        ...tasks.filter((task) => task.id !== activeTask.id),
+        ...tasks.filter((task) => task.id === activeTask!.id),
+        ...tasks.filter((task) => task.id !== activeTask!.id),
       ];
 
       // Find the active project (the project of the active task)
