@@ -149,6 +149,52 @@ export default function TaskTracker({
 
   const { setActiveProjectColor } = useTheme();
 
+  // Verify active task state on initialization
+  useEffect(() => {
+    // Check if there's an active record in the taskRecords
+    const activeRecord = taskRecords.find((record) => record.endedAt === null);
+
+    if (activeRecord) {
+      // Find the task associated with this record
+      const taskForRecord = tasks.find(
+        (task) => task.id === activeRecord.taskId
+      );
+
+      if (taskForRecord) {
+        // If the active task doesn't match the active record's task, update it
+        if (!activeTask || activeTask.id !== taskForRecord.id) {
+          console.log("Correcting active task based on active record:", {
+            previousActiveTaskId: activeTask?.id,
+            newActiveTaskId: taskForRecord.id,
+            activeRecordId: activeRecord.id,
+          });
+
+          setActiveTask(taskForRecord);
+          setActiveTaskId(taskForRecord.id);
+
+          // Update the project color
+          const taskProject = projects.find(
+            (p) => p.id === taskForRecord.projectId
+          );
+          if (taskProject) {
+            setActiveProjectColor(taskProject.color);
+          }
+        }
+      }
+    } else if (activeTask) {
+      // If there's no active record but we have an active task, check if it should be active
+      const hasActiveRecordForTask = taskRecords.some(
+        (record) => record.taskId === activeTask.id && record.endedAt === null
+      );
+
+      if (!hasActiveRecordForTask) {
+        console.log(
+          "No active record found for the current active task. Keeping task selected but not running."
+        );
+      }
+    }
+  }, [tasks, taskRecords, activeTask, projects, setActiveProjectColor]);
+
   // Debug logging
   useEffect(() => {
     if (taskRecords.length > 0) {

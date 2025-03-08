@@ -71,8 +71,17 @@ export default function Stopwatch({
     setIsInitialized(true);
 
     console.log("Stopwatch initialized:", {
-      activeTask,
-      activeRecord,
+      activeTask: activeTask
+        ? { id: activeTask.id, name: activeTask.name }
+        : null,
+      activeRecord: activeRecord
+        ? {
+            id: activeRecord.id,
+            taskId: activeRecord.taskId,
+            startedAt: normalizeTimestamp(activeRecord.startedAt),
+            endedAt: activeRecord.endedAt,
+          }
+        : null,
       isRunning: shouldBeRunning,
       time: shouldBeRunning
         ? Math.max(
@@ -83,6 +92,46 @@ export default function Stopwatch({
         : 0,
     });
   }, [activeRecord, activeTask, isInitialized]);
+
+  // Force re-check of running state when taskRecords change
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    // Check if there's an active record for the current task
+    const hasActiveRecord =
+      activeTask &&
+      taskRecords?.some(
+        (record) => record.taskId === activeTask.id && record.endedAt === null
+      );
+
+    // If the UI state doesn't match the database state, correct it
+    if (isRunning !== !!hasActiveRecord) {
+      console.warn(
+        "Running state mismatch detected during taskRecords update. Correcting..."
+      );
+      console.log({
+        uiState: isRunning ? "running" : "paused",
+        dbState: hasActiveRecord ? "running" : "paused",
+        activeTaskId: activeTask?.id,
+        taskRecordsCount: taskRecords?.length,
+      });
+
+      setIsRunning(!!hasActiveRecord);
+
+      // If we corrected to running, update the time
+      if (hasActiveRecord && activeTask) {
+        const activeRec = taskRecords.find(
+          (record) => record.taskId === activeTask.id && record.endedAt === null
+        );
+        if (activeRec) {
+          const normalizedStartTime =
+            normalizeTimestamp(activeRec.startedAt) || Date.now();
+          const elapsed = Date.now() - normalizedStartTime;
+          setTime(Math.max(0, elapsed));
+        }
+      }
+    }
+  }, [taskRecords, activeTask, isRunning, isInitialized]);
 
   // Update document title with timer state
   useDocumentTitle(time, isRunning, activeTask?.name);
@@ -171,6 +220,8 @@ export default function Stopwatch({
         console.log({
           uiState: isRunning ? "running" : "paused",
           dbState: hasActiveRecord ? "running" : "paused",
+          activeTaskId: activeTask.id,
+          taskRecordsCount: taskRecords?.length,
         });
 
         setIsRunning(hasActiveRecord);
@@ -221,6 +272,38 @@ export default function Stopwatch({
         setIsRunning(false);
       } else {
         // We're currently paused, so start tracking
+
+        // Check if there's any active record for any task
+        const anyActiveRecord = taskRecords?.some(
+          (record) => record.endedAt === null
+        );
+
+        if (anyActiveRecord) {
+          console.warn(
+            "Found an active record for another task. Will stop it first."
+          );
+
+          // Find the task with the active record
+          const activeRecordTaskId = taskRecords.find(
+            (record) => record.endedAt === null
+          )?.taskId;
+
+          if (activeRecordTaskId && activeRecordTaskId !== activeTask.id) {
+            // Stop the other task's tracking first
+            try {
+              await onStopTracking(activeRecordTaskId);
+              console.log(
+                `Stopped tracking for task #${activeRecordTaskId} before starting new task`
+              );
+            } catch (error) {
+              console.error(
+                `Failed to stop tracking for task #${activeRecordTaskId}:`,
+                error
+              );
+            }
+          }
+        }
+
         setTime(0); // Reset timer when starting new session
         await onStartTracking(activeTask.id);
         toast({

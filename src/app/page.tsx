@@ -23,7 +23,50 @@ export default async function Home() {
     // Get the active task, but handle potential errors
     let activeTask: Task | null = null;
     try {
-      activeTask = await getActiveTask();
+      // First check if there's an active record in the database
+      const activeRecords = taskRecords.filter(
+        (record) => record.endedAt === null
+      );
+
+      if (activeRecords.length > 0) {
+        // If there are multiple active records, use the most recent one
+        const mostRecentRecord = activeRecords.sort((a, b) => {
+          const aTime =
+            a.startedAt instanceof Date
+              ? a.startedAt.getTime()
+              : Number(a.startedAt);
+          const bTime =
+            b.startedAt instanceof Date
+              ? b.startedAt.getTime()
+              : Number(b.startedAt);
+          return bTime - aTime;
+        })[0];
+
+        // Find the task associated with this record
+        const taskForRecord = tasks.find(
+          (task) => task.id === mostRecentRecord.taskId
+        );
+
+        if (taskForRecord) {
+          activeTask = taskForRecord;
+          console.log(
+            "Active task determined from active record:",
+            activeTask.id
+          );
+        } else {
+          console.warn(
+            "Found active record but no matching task, will try getActiveTask()"
+          );
+          activeTask = await getActiveTask();
+        }
+      } else {
+        // No active records found, use the getActiveTask function as fallback
+        activeTask = await getActiveTask();
+        console.log(
+          "No active records found, using getActiveTask result:",
+          activeTask?.id
+        );
+      }
     } catch (error) {
       console.error("Error getting active task:", error);
       // Continue with null activeTask
