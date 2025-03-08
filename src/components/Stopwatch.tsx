@@ -491,12 +491,16 @@ export default function Stopwatch({
                       }}
                     >
                       <span>
-                        {formatDistanceToNow(new Date(normalizedStartTime), {
-                          addSuffix: true,
-                        })}
+                        <ClientOnly fallback="recently">
+                          {formatDistanceToNow(new Date(normalizedStartTime), {
+                            addSuffix: true,
+                          })}
+                        </ClientOnly>
                       </span>
                       <span className="font-medium">
-                        {formatDuration(duration)}
+                        <ClientOnly fallback="--:--:--">
+                          {formatDuration(duration)}
+                        </ClientOnly>
                       </span>
                     </div>
                   );
@@ -524,12 +528,16 @@ export default function Stopwatch({
                     }}
                   >
                     <span>
-                      {formatDistanceToNow(new Date(normalizedStartTime), {
-                        addSuffix: true,
-                      })}
+                      <ClientOnly fallback="recently">
+                        {formatDistanceToNow(new Date(normalizedStartTime), {
+                          addSuffix: true,
+                        })}
+                      </ClientOnly>
                     </span>
                     <span className="font-medium">
-                      {formatDuration(duration)}
+                      <ClientOnly fallback="--:--:--">
+                        {formatDuration(duration)}
+                      </ClientOnly>
                     </span>
                   </div>
                 );
