@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { formatDuration } from "@/utils/timeUtils";
 import { ClientOnly } from "./ClientOnly";
+import { useEffect, useState } from "react";
 
 type Task = {
   id: number;
@@ -39,6 +40,32 @@ export default function TaskItem({
   activityName,
   totalTime,
 }: TaskItemProps) {
+  const [wasActive, setWasActive] = useState(isActive);
+  const [animateHighlight, setAnimateHighlight] = useState(false);
+  const [animateSelection, setAnimateSelection] = useState(false);
+
+  // Detect when a task becomes active and trigger animation
+  useEffect(() => {
+    if (isActive && !wasActive) {
+      setAnimateHighlight(true);
+      setAnimateSelection(true);
+
+      const highlightTimer = setTimeout(() => {
+        setAnimateHighlight(false);
+      }, 1000); // Highlight animation duration
+
+      const selectionTimer = setTimeout(() => {
+        setAnimateSelection(false);
+      }, 500); // Selection animation duration
+
+      return () => {
+        clearTimeout(highlightTimer);
+        clearTimeout(selectionTimer);
+      };
+    }
+    setWasActive(isActive);
+  }, [isActive, wasActive]);
+
   const handleTaskClick = async () => {
     if (isActive && onClearSelection) {
       onClearSelection();
@@ -49,10 +76,12 @@ export default function TaskItem({
 
   return (
     <div
-      className={`p-2 mb-1.5 rounded-md flex justify-between items-center cursor-pointer transition-all ${
+      className={`p-2 rounded-md flex justify-between items-center cursor-pointer transition-all ${
         isActive
           ? "bg-primary/10 border border-primary shadow-sm"
           : "bg-card border border-border hover:border-primary/30 hover:shadow-sm"
+      } ${animateHighlight ? "animate-highlight" : ""} ${
+        animateSelection ? "animate-selection" : ""
       }`}
       onClick={handleTaskClick}
     >

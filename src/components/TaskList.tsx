@@ -1,12 +1,18 @@
 "use client";
 
 import TaskItem from "./TaskItem";
-import { PlusCircleIcon, FolderIcon, ClockIcon } from "lucide-react";
+import { PlusCircleIcon, FolderIcon, ClockIcon, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDuration, calculateDuration } from "@/utils/timeUtils";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { ClientOnly } from "./ClientOnly";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Task = {
   id: number;
@@ -59,6 +65,12 @@ export default function TaskList({
   onAddTask,
   onEditTask,
 }: TaskListProps) {
+  // Keep track of the previous active task ID to detect changes
+  const [prevActiveTaskId, setPrevActiveTaskId] = useState<number | null>(null);
+
+  // Keep track of which projects should be animated
+  const [animatedProjectIds, setAnimatedProjectIds] = useState<number[]>([]);
+
   // Memoize task records by task ID for efficient lookup
   const taskRecordsByTaskId = useMemo(() => {
     const recordMap: Record<number, TaskRecord[]> = {};
@@ -75,15 +87,55 @@ export default function TaskList({
 
   // Group tasks by project
   const tasksByProject = useMemo(() => {
-    return tasks.reduce((acc, task) => {
+    const groupedTasks: Record<number, Task[]> = {};
+
+    // Group tasks by project
+    tasks.forEach((task) => {
       const projectId = task.projectId;
-      if (!acc[projectId]) {
-        acc[projectId] = [];
+      if (!groupedTasks[projectId]) {
+        groupedTasks[projectId] = [];
       }
-      acc[projectId].push(task);
-      return acc;
-    }, {} as Record<number, Task[]>);
+      groupedTasks[projectId].push(task);
+    });
+
+    return groupedTasks;
   }, [tasks]);
+
+  // Filter projects to only show those with tasks
+  const projectsWithTasks = useMemo(() => {
+    return projects.filter((project) => {
+      // Check if this project has any tasks
+      return tasksByProject[project.id]?.length > 0;
+    });
+  }, [projects, tasksByProject]);
+
+  // Count of hidden projects (projects with no tasks)
+  const hiddenProjectsCount = useMemo(() => {
+    return projects.length - projectsWithTasks.length;
+  }, [projects, projectsWithTasks]);
+
+  // Effect to detect when active task changes and trigger animations
+  useEffect(() => {
+    if (activeTaskId !== prevActiveTaskId) {
+      // Find the project ID of the active task
+      if (activeTaskId) {
+        const activeTask = tasks.find((task) => task.id === activeTaskId);
+        if (activeTask) {
+          // Add the project ID to the animated projects list
+          setAnimatedProjectIds([activeTask.projectId]);
+
+          // Clear the animation after a delay
+          const timer = setTimeout(() => {
+            setAnimatedProjectIds([]);
+          }, 1000); // Match animation duration
+
+          return () => clearTimeout(timer);
+        }
+      }
+
+      setPrevActiveTaskId(activeTaskId);
+    }
+  }, [activeTaskId, prevActiveTaskId, tasks]);
 
   // Get activity name by id
   const getActivityName = (activityId: number) => {
@@ -121,6 +173,26 @@ export default function TaskList({
         <div className="flex items-center gap-2">
           <FolderIcon className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Projects</h2>
+          {hiddenProjectsCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center text-xs text-muted-foreground ml-2 cursor-help">
+                    <InfoIcon className="h-3.5 w-3.5 mr-1" />
+                    <span>{hiddenProjectsCount} hidden</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {hiddenProjectsCount} project
+                    {hiddenProjectsCount !== 1 ? "s" : ""} with no tasks{" "}
+                    {hiddenProjectsCount !== 1 ? "are" : "is"} hidden. Create a
+                    task for these projects to make them visible.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <Button
           variant="outline"
@@ -134,82 +206,107 @@ export default function TaskList({
       </div>
 
       <div className="space-y-4 overflow-y-auto flex-grow pr-1">
-        {projects.length === 0 ? (
+        {projectsWithTasks.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground bg-muted/50 rounded-lg border border-dashed border-border p-4">
-            <p className="text-muted-foreground mb-2">No projects available</p>
-            <Button variant="outline" size="sm" className="mt-2">
+            <p className="text-muted-foreground mb-2">No tasks available</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={onAddTask}
+            >
               <PlusCircleIcon className="h-4 w-4 mr-1" />
-              Create a project to get started
+              Create a task to get started
             </Button>
+            {hiddenProjectsCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-4">
+                You have {hiddenProjectsCount} project
+                {hiddenProjectsCount !== 1 ? "s" : ""} available for new tasks.
+              </p>
+            )}
           </div>
         ) : (
-          projects.map((project) => {
-            const projectTotalTime = calculateProjectTotalTime(project.id);
+          <div className="space-y-4">
+            {projectsWithTasks.map((project) => {
+              const projectTotalTime = calculateProjectTotalTime(project.id);
+              const shouldAnimate = animatedProjectIds.includes(project.id);
+              const activeProject =
+                tasks.find((t) => t.id === activeTaskId)?.projectId ===
+                project.id;
 
-            return (
-              <div
-                key={project.id}
-                className="mb-4 bg-card rounded-lg overflow-hidden border border-border shadow-sm"
-              >
+              return (
                 <div
-                  className="font-medium px-4 py-3 flex items-center justify-between"
-                  style={{
-                    backgroundColor: `${project.color}20`,
-                    borderLeft: `4px solid ${project.color}`,
-                  }}
+                  key={project.id}
+                  className={`bg-card rounded-lg overflow-hidden border border-border shadow-sm transition-all duration-500 ease-in-out ${
+                    shouldAnimate ? "animate-move-to-top" : ""
+                  } ${activeProject ? "relative z-10" : ""}`}
                 >
-                  <div className="flex items-center">
-                    <span
-                      className="h-4 w-4 rounded-full mr-2 flex-shrink-0"
-                      style={{ backgroundColor: project.color }}
-                    ></span>
-                    <span className="font-semibold">{project.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs font-normal flex items-center gap-1 ${
-                        tasksByProject[project.id]?.length === 0
-                          ? ""
-                          : `bg-${project.color}`
-                      }`}
-                    >
-                      <ClockIcon className="h-3 w-3" />
-                      <ClientOnly fallback="--:--:--">
-                        {formatDuration(projectTotalTime)}
-                      </ClientOnly>
-                    </Badge>
-                  </div>
-                </div>
-                <div className="p-2">
-                  {tasksByProject[project.id]?.length ? (
-                    tasksByProject[project.id].map((task) => {
-                      const taskTotalTime = calculateTaskTotalTime(task.id);
-
-                      return (
-                        <div key={task.id} className="mb-2 last:mb-0">
-                          <TaskItem
-                            key={task.id}
-                            task={task}
-                            isActive={task.id === activeTaskId}
-                            onSelect={onSelectTask}
-                            onClearSelection={onClearSelection}
-                            onEdit={onEditTask}
-                            activityName={getActivityName(task.activityId)}
-                            totalTime={taskTotalTime}
-                          />
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-sm text-muted-foreground py-3 px-2 italic text-center">
-                      No tasks in this project
+                  <div
+                    className="font-medium px-4 py-3 flex items-center justify-between"
+                    style={{
+                      backgroundColor: `${project.color}20`,
+                      borderLeft: `4px solid ${project.color}`,
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <span
+                        className="h-4 w-4 rounded-full mr-2 flex-shrink-0"
+                        style={{ backgroundColor: project.color }}
+                      ></span>
+                      <span className="font-semibold">{project.name}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs font-normal flex items-center gap-1 ${
+                          tasksByProject[project.id]?.length === 0
+                            ? ""
+                            : `bg-${project.color}`
+                        }`}
+                      >
+                        <ClockIcon className="h-3 w-3" />
+                        <ClientOnly fallback="--:--:--">
+                          {formatDuration(projectTotalTime)}
+                        </ClientOnly>
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="p-2 space-y-2">
+                    {tasksByProject[project.id]?.length ? (
+                      tasksByProject[project.id].map((task) => {
+                        const taskTotalTime = calculateTaskTotalTime(task.id);
+                        const isActive = task.id === activeTaskId;
+
+                        return (
+                          <div
+                            key={task.id}
+                            className={`transition-all duration-500 ease-in-out ${
+                              isActive ? "relative z-10" : ""
+                            }`}
+                          >
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              isActive={isActive}
+                              onSelect={onSelectTask}
+                              onClearSelection={onClearSelection}
+                              onEdit={onEditTask}
+                              activityName={getActivityName(task.activityId)}
+                              totalTime={taskTotalTime}
+                            />
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-sm text-muted-foreground py-3 px-2 italic text-center">
+                        No tasks in this project
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

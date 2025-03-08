@@ -9,8 +9,9 @@ import {
 
 export default async function Home() {
   try {
-    const tasks = await getTasks();
-    const projects = await getProjects();
+    // Get all data from the database
+    let tasks = await getTasks();
+    let projects = await getProjects();
     const activities = await getActivities();
     const taskRecords = await getTaskRecords();
 
@@ -21,6 +22,29 @@ export default async function Home() {
     } catch (error) {
       console.error("Error getting active task:", error);
       // Continue with null activeTask
+    }
+
+    // If we have an active task, sort tasks to put the active one first
+    if (activeTask) {
+      // Sort tasks to put the active one first
+      tasks = [
+        ...tasks.filter((task) => task.id === activeTask.id),
+        ...tasks.filter((task) => task.id !== activeTask.id),
+      ];
+
+      // Find the active project (the project of the active task)
+      const activeProjectId = activeTask.projectId;
+
+      // Sort projects to put the active one first
+      projects = [
+        ...projects.filter((project) => project.id === activeProjectId),
+        ...projects.filter((project) => project.id !== activeProjectId),
+      ];
+
+      console.log("Sorted active task and project to the top:", {
+        activeTaskId: activeTask.id,
+        activeProjectId,
+      });
     }
 
     return (

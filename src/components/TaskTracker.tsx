@@ -178,13 +178,50 @@ export default function TaskTracker({
       // Check if the task exists in the database
       const exists = await checkTaskExists(taskId);
       if (exists) {
+        // If there's an active task and it's different from the selected task, stop tracking it first
+        if (activeTask && activeTask.id !== taskId) {
+          try {
+            // Check if the current active task is being tracked
+            const isCurrentlyTracking = taskRecords.some(
+              (record) =>
+                record.taskId === activeTask.id && record.endedAt === null
+            );
+
+            if (isCurrentlyTracking) {
+              console.log(
+                `Pausing previous task #${activeTask.id} before selecting new task #${taskId}`
+              );
+              await handleStopTracking(activeTask.id);
+            }
+          } catch (error) {
+            console.error("Error stopping previous task:", error);
+            toast({
+              title: "Warning",
+              description:
+                "Could not pause the previous task. Continuing with new task selection.",
+              variant: "destructive",
+            });
+          }
+        }
+
+        // Set the new active task
         setActiveTask(selectedTask);
         setActiveTaskId(taskId);
+
+        // Permanently reorder tasks to put the selected task at the top of its project's list
+        const reorderedTasks = [
+          // First include the selected task
+          selectedTask,
+          // Then include all other tasks except the selected one
+          ...tasks.filter((task) => task.id !== taskId),
+        ];
+        setTasks(reorderedTasks);
 
         // Get the project color for the selected task
         const taskProject = projects.find(
           (p) => p.id === selectedTask.projectId
         );
+
         if (taskProject) {
           console.log(
             "Setting active project color:",
@@ -193,8 +230,39 @@ export default function TaskTracker({
             taskProject
           );
           setActiveProjectColor(taskProject.color);
+
+          // Permanently reorder projects to put the selected task's project at the top
+          const reorderedProjects = [
+            // First include the project of the selected task
+            taskProject,
+            // Then include all other projects except the selected task's project
+            ...projects.filter((project) => project.id !== taskProject.id),
+          ];
+          setProjects(reorderedProjects);
         } else {
           console.warn("Project not found for task:", selectedTask);
+        }
+
+        // Automatically start tracking the newly selected task
+        try {
+          // Check if the task is already being tracked
+          const isAlreadyTracking = taskRecords.some(
+            (record) => record.taskId === taskId && record.endedAt === null
+          );
+
+          if (!isAlreadyTracking) {
+            console.log(
+              `Automatically starting tracking for newly selected task #${taskId}`
+            );
+            await handleStartTracking(taskId);
+          }
+        } catch (error) {
+          console.error("Error starting new task:", error);
+          toast({
+            title: "Warning",
+            description: "Could not automatically start the selected task.",
+            variant: "destructive",
+          });
         }
       } else {
         toast({

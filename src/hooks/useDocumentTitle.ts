@@ -37,7 +37,7 @@ export function useDocumentTitle(
     }
 
     // Add status indicator
-    title += isRunning ? " ▶️" : " ⏸️";
+    title += isRunning ? " ▶" : " ⏸";
 
     // Update the document title
     document.title = title;

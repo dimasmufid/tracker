@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTheme as useNextTheme } from "next-themes";
 import {
   LineChart,
   MoreVertical,
@@ -10,27 +12,28 @@ import {
   TagIcon,
   PlusCircleIcon,
   PencilIcon,
+  SunIcon,
+  MoonIcon,
+  LaptopIcon,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DropdownDay } from "./DropdownDay";
-import { ProjectDialog } from "./ProjectDialog";
-import { ActivityDialog } from "./ActivityDialog";
+import { DropdownDay } from "@/components/DropdownDay";
+import { ProjectDialog } from "@/components/ProjectDialog";
+import { ActivityDialog } from "@/components/ActivityDialog";
 import { ProjectFormValues, ActivityFormValues } from "@/lib/schemas";
-import { Logo } from "./Logo";
-import { ThemeToggle } from "./ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 type Project = {
   id: number;
@@ -70,6 +73,7 @@ export default function Header({
   selectedDate,
 }: HeaderProps) {
   const router = useRouter();
+  const { setTheme } = useNextTheme();
 
   // Project dialog state
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
@@ -147,7 +151,6 @@ export default function Header({
 
         {/* main actions */}
         <div className="flex flex-row items-center gap-2">
-          <ThemeToggle />
           <DropdownDay
             selectedDate={selectedDate}
             onDateChange={onDateChange}
@@ -263,10 +266,30 @@ export default function Header({
               </DropdownMenuSub>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Settings</DropdownMenuLabel>
+              <DropdownMenuLabel>Preferences</DropdownMenuLabel>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <SunIcon className="w-4 h-4 mr-2" />
+                  <span>Theme</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => setTheme("light")}>
+                    <SunIcon className="w-4 h-4 mr-2" />
+                    <span>Light</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")}>
+                    <MoonIcon className="w-4 h-4 mr-2" />
+                    <span>Dark</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("system")}>
+                    <LaptopIcon className="w-4 h-4 mr-2" />
+                    <span>System</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem disabled>
                 <SettingsIcon className="w-4 h-4 mr-2" />
-                <span>Preferences</span>
+                <span>Settings</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
