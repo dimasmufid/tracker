@@ -8,11 +8,20 @@ import {
 } from "@/services/taskService";
 import { tasks } from "@/db/schema";
 import { InferSelectModel } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 // Define the Task type based on the database schema
 type Task = InferSelectModel<typeof tasks>;
 
 export default async function Home() {
+  // Check if the user is authenticated
+  const session = await auth();
+  if (!session?.user) {
+    // Redirect to sign-in page if not authenticated
+    redirect("/sign-in");
+  }
+
   try {
     // Get all data from the database
     let tasks = await getTasks();

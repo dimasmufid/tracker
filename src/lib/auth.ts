@@ -91,6 +91,12 @@ export const {
   },
 });
 
+// Helper function to get the current user ID
+export async function getCurrentUserId() {
+  const session = await auth();
+  return session?.user?.id;
+}
+
 // Helper function to hash passwords
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;
