@@ -11,6 +11,7 @@ import {
   editActivity,
   editProject,
 } from "@/lib/actions";
+import { toast } from "@/components/ui/use-toast";
 
 // Type definitions
 type Project = {
@@ -106,7 +107,9 @@ export default function HomeClient({
   // These functions would normally interact with your backend
   const handleAddProject = async (data: ProjectFormValues) => {
     try {
+      console.log("handleAddProject called with data:", data);
       await addProject(data);
+
       // Optimistically update the UI by adding a temporary project
       // In a real app, you'd fetch the new project with its ID from the server
       const newProject: Project = {
@@ -117,8 +120,18 @@ export default function HomeClient({
         created_at: Date.now(),
       };
       setProjects((prev) => [...prev, newProject]);
+
+      toast({
+        title: "Project created",
+        description: "Your project has been created successfully.",
+      });
     } catch (error) {
       console.error("Failed to add project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -183,6 +196,48 @@ export default function HomeClient({
     }
   };
 
+  // Handle project deletion
+  const handleProjectDeleted = async (projectId: number) => {
+    try {
+      // Remove the project from the local state
+      setProjects((prev) => prev.filter((project) => project.id !== projectId));
+
+      toast({
+        title: "Project deleted",
+        description: "The project has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle activity deletion
+  const handleActivityDeleted = async (activityId: number) => {
+    try {
+      // Remove the activity from the local state
+      setActivities((prev) =>
+        prev.filter((activity) => activity.id !== activityId)
+      );
+
+      toast({
+        title: "Activity deleted",
+        description: "The activity has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to delete activity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete activity. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col bg-background">
       <Header
@@ -194,6 +249,8 @@ export default function HomeClient({
         onEditActivity={handleEditActivity}
         onDateChange={handleDateChange}
         selectedDate={selectedDate}
+        onProjectDeleted={handleProjectDeleted}
+        onActivityDeleted={handleActivityDeleted}
       />
       <div className="flex-grow container mx-auto px-0 md:px-2 max-w-7xl">
         <TaskTracker

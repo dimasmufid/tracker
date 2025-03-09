@@ -12,7 +12,7 @@ export async function getTasks() {
   return await db
     .select()
     .from(tasks)
-    .where(eq(tasks.user_id, userId))
+    .where(and(eq(tasks.user_id, userId), eq(tasks.is_deleted, false)))
     .orderBy(desc(tasks.created_at));
 }
 
@@ -23,7 +23,7 @@ export async function getProjects() {
   return await db
     .select()
     .from(projects)
-    .where(eq(projects.user_id, userId))
+    .where(and(eq(projects.user_id, userId), eq(projects.is_deleted, false)))
     .orderBy(desc(projects.created_at));
 }
 
@@ -34,7 +34,9 @@ export async function getActivities() {
   return await db
     .select()
     .from(activities)
-    .where(eq(activities.user_id, userId))
+    .where(
+      and(eq(activities.user_id, userId), eq(activities.is_deleted, false))
+    )
     .orderBy(desc(activities.created_at));
 }
 
@@ -47,7 +49,11 @@ export async function getTaskRecords(taskId?: number) {
       .select()
       .from(taskRecords)
       .where(
-        and(eq(taskRecords.task_id, taskId), eq(taskRecords.user_id, userId))
+        and(
+          eq(taskRecords.task_id, taskId),
+          eq(taskRecords.user_id, userId),
+          eq(taskRecords.is_deleted, false)
+        )
       )
       .orderBy(desc(taskRecords.started_at));
   }
@@ -55,7 +61,9 @@ export async function getTaskRecords(taskId?: number) {
   return await db
     .select()
     .from(taskRecords)
-    .where(eq(taskRecords.user_id, userId))
+    .where(
+      and(eq(taskRecords.user_id, userId), eq(taskRecords.is_deleted, false))
+    )
     .orderBy(desc(taskRecords.started_at));
 }
 
@@ -67,19 +75,22 @@ export async function startTaskTracking(taskId: number) {
     throw new Error("User not authenticated");
   }
 
-  // First, check if the task exists and belongs to the user
+  // Verify that the task exists and belongs to the user
   const taskExists = await db
     .select({ id: tasks.id })
     .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+    .where(
+      and(
+        eq(tasks.id, taskId),
+        eq(tasks.user_id, userId),
+        eq(tasks.is_deleted, false)
+      )
+    )
     .limit(1);
 
   if (taskExists.length === 0) {
-    console.error(
-      `Task with ID ${taskId} does not exist or doesn't belong to the user`
-    );
     throw new Error(
-      `Task with ID ${taskId} does not exist or doesn't belong to the user`
+      `Task with ID ${taskId} does not exist, doesn't belong to the user, or has been deleted`
     );
   }
 
@@ -134,7 +145,8 @@ export async function stopTaskTracking(taskId: number) {
         and(
           eq(taskRecords.task_id, taskId),
           isNull(taskRecords.ended_at),
-          eq(taskRecords.user_id, userId)
+          eq(taskRecords.user_id, userId),
+          eq(taskRecords.is_deleted, false)
         )
       )
       .orderBy(desc(taskRecords.started_at)) // Get the most recent one if multiple
@@ -147,15 +159,21 @@ export async function stopTaskTracking(taskId: number) {
       const taskExists = await db
         .select({ id: tasks.id })
         .from(tasks)
-        .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+        .where(
+          and(
+            eq(tasks.id, taskId),
+            eq(tasks.user_id, userId),
+            eq(tasks.is_deleted, false)
+          )
+        )
         .limit(1);
 
       if (taskExists.length === 0) {
         console.error(
-          `Task with ID ${taskId} does not exist or doesn't belong to the user`
+          `Task with ID ${taskId} does not exist, doesn't belong to the user, or has been deleted`
         );
         throw new Error(
-          `Task with ID ${taskId} does not exist or doesn't belong to the user`
+          `Task with ID ${taskId} does not exist, doesn't belong to the user, or has been deleted`
         );
       }
 
@@ -191,7 +209,13 @@ export async function getActiveTask() {
     const activeRecords = await db
       .select()
       .from(taskRecords)
-      .where(and(isNull(taskRecords.ended_at), eq(taskRecords.user_id, userId)))
+      .where(
+        and(
+          isNull(taskRecords.ended_at),
+          eq(taskRecords.user_id, userId),
+          eq(taskRecords.is_deleted, false)
+        )
+      )
       .orderBy(desc(taskRecords.started_at)); // Get the most recent ones
 
     if (activeRecords.length === 0) {
@@ -226,7 +250,11 @@ export async function getActiveTask() {
         .select()
         .from(tasks)
         .where(
-          and(eq(tasks.id, activeRecord.task_id), eq(tasks.user_id, userId))
+          and(
+            eq(tasks.id, activeRecord.task_id),
+            eq(tasks.user_id, userId),
+            eq(tasks.is_deleted, false)
+          )
         )
         .limit(1);
 
@@ -251,7 +279,13 @@ export async function getActiveTask() {
     const task = await db
       .select()
       .from(tasks)
-      .where(and(eq(tasks.id, activeRecord.task_id), eq(tasks.user_id, userId)))
+      .where(
+        and(
+          eq(tasks.id, activeRecord.task_id),
+          eq(tasks.user_id, userId),
+          eq(tasks.is_deleted, false)
+        )
+      )
       .limit(1);
 
     // If the task doesn't exist but we have an active record, close the record
@@ -283,23 +317,36 @@ export async function calculateTaskTotalTime(taskId: number) {
   if (!userId) return 0;
 
   try {
-    // First, check if the task exists and belongs to the user
+    // Verify that the task exists and belongs to the user
     const taskExists = await db
       .select({ id: tasks.id })
       .from(tasks)
-      .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+      .where(
+        and(
+          eq(tasks.id, taskId),
+          eq(tasks.user_id, userId),
+          eq(tasks.is_deleted, false)
+        )
+      )
       .limit(1);
 
     if (taskExists.length === 0) {
+      console.error(
+        `Task with ID ${taskId} does not exist, doesn't belong to the user, or has been deleted`
+      );
       return 0;
     }
 
-    // Get all records for this task
+    // Get all completed records for this task
     const records = await db
       .select()
       .from(taskRecords)
       .where(
-        and(eq(taskRecords.task_id, taskId), eq(taskRecords.user_id, userId))
+        and(
+          eq(taskRecords.task_id, taskId),
+          eq(taskRecords.user_id, userId),
+          eq(taskRecords.is_deleted, false)
+        )
       );
 
     // Calculate total time
@@ -329,14 +376,23 @@ export async function calculateProjectTotalTime(projectId: number) {
   if (!userId) return 0;
 
   try {
-    // First, check if the project exists and belongs to the user
+    // Verify that the project exists and belongs to the user
     const projectExists = await db
       .select({ id: projects.id })
       .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.user_id, userId),
+          eq(projects.is_deleted, false)
+        )
+      )
       .limit(1);
 
     if (projectExists.length === 0) {
+      console.error(
+        `Project with ID ${projectId} does not exist, doesn't belong to the user, or has been deleted`
+      );
       return 0;
     }
 
@@ -344,7 +400,13 @@ export async function calculateProjectTotalTime(projectId: number) {
     const projectTasks = await db
       .select()
       .from(tasks)
-      .where(and(eq(tasks.project_id, projectId), eq(tasks.user_id, userId)));
+      .where(
+        and(
+          eq(tasks.project_id, projectId),
+          eq(tasks.user_id, userId),
+          eq(tasks.is_deleted, false)
+        )
+      );
 
     // Get all task records for these tasks in a single query
     const taskIds = projectTasks.map((task) => task.id);
@@ -397,24 +459,36 @@ export async function createTask(
   const projectExists = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.user_id, userId),
+        eq(projects.is_deleted, false)
+      )
+    )
     .limit(1);
 
   if (projectExists.length === 0) {
     throw new Error(
-      `Project with ID ${projectId} does not exist or doesn't belong to the user`
+      `Project with ID ${projectId} does not exist, doesn't belong to the user, or has been deleted`
     );
   }
 
   const activityExists = await db
     .select({ id: activities.id })
     .from(activities)
-    .where(and(eq(activities.id, activityId), eq(activities.user_id, userId)))
+    .where(
+      and(
+        eq(activities.id, activityId),
+        eq(activities.user_id, userId),
+        eq(activities.is_deleted, false)
+      )
+    )
     .limit(1);
 
   if (activityExists.length === 0) {
     throw new Error(
-      `Activity with ID ${activityId} does not exist or doesn't belong to the user`
+      `Activity with ID ${activityId} does not exist, doesn't belong to the user, or has been deleted`
     );
   }
 
@@ -444,7 +518,13 @@ export async function checkTaskExists(taskId: number): Promise<boolean> {
     const result = await db
       .select({ id: tasks.id })
       .from(tasks)
-      .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+      .where(
+        and(
+          eq(tasks.id, taskId),
+          eq(tasks.user_id, userId),
+          eq(tasks.is_deleted, false)
+        )
+      )
       .limit(1);
 
     return result.length > 0;
@@ -469,12 +549,18 @@ export async function updateTask(
   const taskExists = await db
     .select({ id: tasks.id })
     .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)))
+    .where(
+      and(
+        eq(tasks.id, taskId),
+        eq(tasks.user_id, userId),
+        eq(tasks.is_deleted, false)
+      )
+    )
     .limit(1);
 
   if (taskExists.length === 0) {
     throw new Error(
-      `Task with ID ${taskId} does not exist or doesn't belong to the user`
+      `Task with ID ${taskId} does not exist, doesn't belong to the user, or has been deleted`
     );
   }
 
@@ -482,24 +568,36 @@ export async function updateTask(
   const projectExists = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.user_id, userId),
+        eq(projects.is_deleted, false)
+      )
+    )
     .limit(1);
 
   if (projectExists.length === 0) {
     throw new Error(
-      `Project with ID ${projectId} does not exist or doesn't belong to the user`
+      `Project with ID ${projectId} does not exist, doesn't belong to the user, or has been deleted`
     );
   }
 
   const activityExists = await db
     .select({ id: activities.id })
     .from(activities)
-    .where(and(eq(activities.id, activityId), eq(activities.user_id, userId)))
+    .where(
+      and(
+        eq(activities.id, activityId),
+        eq(activities.user_id, userId),
+        eq(activities.is_deleted, false)
+      )
+    )
     .limit(1);
 
   if (activityExists.length === 0) {
     throw new Error(
-      `Activity with ID ${activityId} does not exist or doesn't belong to the user`
+      `Activity with ID ${activityId} does not exist, doesn't belong to the user, or has been deleted`
     );
   }
 
@@ -518,6 +616,200 @@ export async function updateTask(
     return result[0];
   } catch (error) {
     console.error("Error updating task:", error);
+    throw error;
+  }
+}
+
+// Soft delete functions
+export async function softDeleteProject(projectId: number) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  // Verify that the project exists and belongs to the user
+  const projectExists = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.user_id, userId),
+        eq(projects.is_deleted, false)
+      )
+    )
+    .limit(1);
+
+  if (projectExists.length === 0) {
+    throw new Error(
+      `Project with ID ${projectId} does not exist, doesn't belong to the user, or has been deleted`
+    );
+  }
+
+  try {
+    // Soft delete the project
+    await db
+      .update(projects)
+      .set({ is_deleted: true })
+      .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)));
+
+    // Also soft delete all tasks associated with this project
+    const projectTasks = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.project_id, projectId),
+          eq(tasks.user_id, userId),
+          eq(tasks.is_deleted, false)
+        )
+      );
+
+    if (projectTasks.length > 0) {
+      const taskIds = projectTasks.map((task) => task.id);
+
+      // Soft delete the tasks
+      await db
+        .update(tasks)
+        .set({ is_deleted: true })
+        .where(and(inArray(tasks.id, taskIds), eq(tasks.user_id, userId)));
+
+      // Soft delete the task records associated with these tasks
+      await db
+        .update(taskRecords)
+        .set({ is_deleted: true })
+        .where(
+          and(
+            inArray(taskRecords.task_id, taskIds),
+            eq(taskRecords.user_id, userId)
+          )
+        );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error soft deleting project:", error);
+    throw error;
+  }
+}
+
+export async function softDeleteActivity(activityId: number) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  // Verify that the activity exists and belongs to the user
+  const activityExists = await db
+    .select({ id: activities.id })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.id, activityId),
+        eq(activities.user_id, userId),
+        eq(activities.is_deleted, false)
+      )
+    )
+    .limit(1);
+
+  if (activityExists.length === 0) {
+    throw new Error(
+      `Activity with ID ${activityId} does not exist, doesn't belong to the user, or has been deleted`
+    );
+  }
+
+  try {
+    // Soft delete the activity
+    await db
+      .update(activities)
+      .set({ is_deleted: true })
+      .where(
+        and(eq(activities.id, activityId), eq(activities.user_id, userId))
+      );
+
+    // Also soft delete all tasks associated with this activity
+    const activityTasks = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.activity_id, activityId),
+          eq(tasks.user_id, userId),
+          eq(tasks.is_deleted, false)
+        )
+      );
+
+    if (activityTasks.length > 0) {
+      const taskIds = activityTasks.map((task) => task.id);
+
+      // Soft delete the tasks
+      await db
+        .update(tasks)
+        .set({ is_deleted: true })
+        .where(and(inArray(tasks.id, taskIds), eq(tasks.user_id, userId)));
+
+      // Soft delete the task records associated with these tasks
+      await db
+        .update(taskRecords)
+        .set({ is_deleted: true })
+        .where(
+          and(
+            inArray(taskRecords.task_id, taskIds),
+            eq(taskRecords.user_id, userId)
+          )
+        );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error soft deleting activity:", error);
+    throw error;
+  }
+}
+
+export async function softDeleteTask(taskId: number) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  // Verify that the task exists and belongs to the user
+  const taskExists = await db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.id, taskId),
+        eq(tasks.user_id, userId),
+        eq(tasks.is_deleted, false)
+      )
+    )
+    .limit(1);
+
+  if (taskExists.length === 0) {
+    throw new Error(
+      `Task with ID ${taskId} does not exist, doesn't belong to the user, or has been deleted`
+    );
+  }
+
+  try {
+    // Soft delete the task
+    await db
+      .update(tasks)
+      .set({ is_deleted: true })
+      .where(and(eq(tasks.id, taskId), eq(tasks.user_id, userId)));
+
+    // Also soft delete all task records associated with this task
+    await db
+      .update(taskRecords)
+      .set({ is_deleted: true })
+      .where(
+        and(eq(taskRecords.task_id, taskId), eq(taskRecords.user_id, userId))
+      );
+
+    return true;
+  } catch (error) {
+    console.error("Error soft deleting task:", error);
     throw error;
   }
 }

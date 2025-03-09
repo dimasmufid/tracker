@@ -56,6 +56,8 @@ interface HeaderProps {
   ) => Promise<void>;
   onDateChange: (date: Date) => void;
   selectedDate?: Date;
+  onProjectDeleted?: (projectId: number) => void;
+  onActivityDeleted?: (activityId: number) => void;
 }
 
 export default function Header({
@@ -67,6 +69,8 @@ export default function Header({
   onEditActivity,
   onDateChange,
   selectedDate,
+  onProjectDeleted,
+  onActivityDeleted,
 }: HeaderProps) {
   const router = useRouter();
 
@@ -111,12 +115,27 @@ export default function Header({
     project: Project | null,
     data: ProjectFormValues
   ) => {
-    if (projectDialogMode === "add") {
-      await onAddProject(data);
-    } else {
-      if (project) {
-        await onEditProject(project.id, data);
+    console.log(
+      "handleSaveProject called with project:",
+      project,
+      "data:",
+      data
+    );
+    try {
+      if (projectDialogMode === "add") {
+        console.log("Adding new project with data:", data);
+        await onAddProject(data);
+        console.log("Project added successfully");
+      } else {
+        if (project) {
+          console.log("Editing project with ID:", project.id, "data:", data);
+          await onEditProject(project.id, data);
+          console.log("Project edited successfully");
+        }
       }
+    } catch (error) {
+      console.error("Error in handleSaveProject:", error);
+      throw error; // Re-throw to allow the dialog to handle the error
     }
   };
 
@@ -131,6 +150,20 @@ export default function Header({
       if (activity) {
         await onEditActivity(activity.id, data);
       }
+    }
+  };
+
+  // Handle project deletion
+  const handleProjectDeleted = () => {
+    if (selectedProject && onProjectDeleted) {
+      onProjectDeleted(selectedProject.id);
+    }
+  };
+
+  // Handle activity deletion
+  const handleActivityDeleted = () => {
+    if (selectedActivity && onActivityDeleted) {
+      onActivityDeleted(selectedActivity.id);
     }
   };
 
@@ -293,6 +326,7 @@ export default function Header({
         project={selectedProject}
         onSaveProject={handleSaveProject}
         mode={projectDialogMode}
+        onProjectDeleted={handleProjectDeleted}
       />
 
       {/* Activity Dialog */}
@@ -302,6 +336,7 @@ export default function Header({
         activity={selectedActivity}
         onSaveActivity={handleSaveActivity}
         mode={activityDialogMode}
+        onActivityDeleted={handleActivityDeleted}
       />
     </div>
   );

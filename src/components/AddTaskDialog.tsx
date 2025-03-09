@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+import { getCurrentUserId } from "@/lib/auth-utils";
 
 const formSchema = taskFormSchema.omit({ user_id: true });
 
@@ -75,15 +76,9 @@ export function AddTaskDialog({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
-      // Get the current user ID from the session
-      const session = await fetch("/api/auth/session").then((res) =>
-        res.json()
-      );
-      const userId = session?.user?.id;
 
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
+      // Get the user ID using the utility function
+      const userId = await getCurrentUserId();
 
       // Add user_id to the form values
       const formData: TaskFormValues = {

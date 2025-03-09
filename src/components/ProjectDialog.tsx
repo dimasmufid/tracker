@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -26,7 +25,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "./ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, Trash2 } from "lucide-react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { deleteProject } from "@/lib/actions";
+import { getCurrentUserId } from "@/lib/auth-utils";
 
 // Predefined color options similar to Chrome's group colors
 const colorOptions = [
@@ -56,6 +58,7 @@ interface ProjectDialogProps {
     data: ProjectFormValues
   ) => Promise<void>;
   mode: "add" | "edit";
+  onProjectDeleted?: () => void;
 }
 
 export function ProjectDialog({
@@ -64,8 +67,11 @@ export function ProjectDialog({
   project,
   onSaveProject,
   mode,
+  onProjectDeleted,
 }: ProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const defaultColor = project?.color || colorOptions[4].value; // Default to blue if no color is provided
 
   const form: UseFormReturn<ProjectFormValues> = useForm<ProjectFormValues>({
@@ -94,24 +100,32 @@ export function ProjectDialog({
     }
   }, [project, form, mode, defaultColor]);
 
+  // Add debugging for form errors
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      console.log("Form values changed:", form.getValues());
+      console.log("Form errors:", form.formState.errors);
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   async function onSubmit(values: ProjectFormValues) {
+    console.log("onSubmit called with values:", values);
+    console.log("Form is valid:", form.formState.isValid);
+
     try {
       setIsSubmitting(true);
-      // Get the current user ID from the session
-      const session = await fetch("/api/auth/session").then((res) =>
-        res.json()
-      );
-      const userId = session?.user?.id;
 
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
+      // Get the user ID using the utility function
+      const userId = await getCurrentUserId();
+      console.log("User ID from getCurrentUserId:", userId);
 
       // Add user_id to the form values
       const formData: ProjectFormValues = {
         ...values,
         user_id: userId,
       };
+      console.log("Form data with user_id:", formData);
 
       await onSaveProject(project, formData);
       onOpenChange(false);
@@ -138,102 +152,288 @@ export function ProjectDialog({
     }
   }
 
+  const handleDeleteProject = async () => {
+    if (!project) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteProject(project.id);
+
+      // Close both dialogs
+      setIsDeleteDialogOpen(false);
+      onOpenChange(false);
+
+      // Notify parent component
+      if (onProjectDeleted) {
+        onProjectDeleted();
+      }
+
+      toast({
+        title: "Project deleted",
+        description: "The project has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === "add" ? "Add New Project" : "Edit Project"}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === "add"
-              ? "Create a new project to organize your tasks."
-              : "Make changes to your project details."}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter project name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {mode === "add" ? "Add New Project" : "Edit Project"}
+            </DialogTitle>
+            <DialogDescription>
+              {mode === "add"
+                ? "Create a new project to organize your tasks."
+                : "Make changes to your project details."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Regular form for debugging */}
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Project Name</h3>
+              <input
+                type="text"
+                id="debug-name"
+                className="w-full p-2 border rounded-md"
+                placeholder="Enter project name"
+                defaultValue={form.getValues().name}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Description</h3>
+              <textarea
+                id="debug-description"
+                className="w-full p-2 border rounded-md resize-none"
+                placeholder="Enter project description (optional)"
+                defaultValue={form.getValues().description || ""}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Color</h3>
+              <div className="flex flex-wrap gap-3 py-2">
+                {colorOptions.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
+                      form.getValues().color === color.value
+                        ? "ring-2 ring-offset-2 ring-primary scale-110"
+                        : "hover:scale-110 border-border"
+                    )}
+                    style={{ backgroundColor: color.value }}
+                    onClick={() => {
+                      console.log("Color selected:", color.value);
+                      form.setValue("color", color.value);
+                    }}
+                    title={color.label}
+                    aria-label={`Select ${color.label} color`}
+                  >
+                    {form.getValues().color === color.value && (
+                      <CheckIcon className="h-5 w-5 text-white drop-shadow-sm" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4">
+              {mode === "edit" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    console.log("Delete button clicked");
+                    setIsDeleteDialogOpen(true);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter project description (optional)"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <div className="flex flex-wrap gap-3 py-2">
-                      {colorOptions.map((color) => (
-                        <button
-                          key={color.value}
-                          type="button"
-                          className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
-                            field.value === color.value
-                              ? "ring-2 ring-offset-2 ring-primary scale-110"
-                              : "hover:scale-110 border-border"
-                          )}
-                          style={{ backgroundColor: color.value }}
-                          onClick={() => field.onChange(color.value)}
-                          title={color.label}
-                          aria-label={`Select ${color.label} color`}
-                        >
-                          {field.value === color.value && (
-                            <CheckIcon className="h-5 w-5 text-white drop-shadow-sm" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Select a color for your project
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? mode === "add"
-                    ? "Creating..."
-                    : "Saving..."
-                  : mode === "add"
-                  ? "Create Project"
-                  : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <div className={mode === "edit" ? "flex-1 flex justify-end" : ""}>
+                <Button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={async () => {
+                    console.log("Debug submit button clicked");
+                    try {
+                      setIsSubmitting(true);
+
+                      const nameInput = document.getElementById(
+                        "debug-name"
+                      ) as HTMLInputElement;
+                      const descriptionInput = document.getElementById(
+                        "debug-description"
+                      ) as HTMLTextAreaElement;
+
+                      const values = {
+                        name: nameInput.value,
+                        description: descriptionInput.value,
+                        color: form.getValues().color,
+                      };
+
+                      console.log("Debug form values:", values);
+
+                      // Get the user ID using the utility function
+                      const userId = await getCurrentUserId();
+                      console.log("User ID from getCurrentUserId:", userId);
+
+                      // Add user_id to the form values
+                      const formData: ProjectFormValues = {
+                        ...values,
+                        user_id: userId,
+                      };
+                      console.log("Form data with user_id:", formData);
+
+                      await onSaveProject(project, formData);
+                      onOpenChange(false);
+                      toast({
+                        title: `Project ${
+                          mode === "add" ? "created" : "updated"
+                        }`,
+                        description: `Your project has been ${
+                          mode === "add" ? "created" : "updated"
+                        } successfully.`,
+                      });
+                    } catch (error) {
+                      console.error(
+                        `Error ${
+                          mode === "add" ? "creating" : "updating"
+                        } project:`,
+                        error
+                      );
+                      toast({
+                        title: "Error",
+                        description: `Failed to ${
+                          mode === "add" ? "create" : "update"
+                        } project. Please try again.`,
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
+                >
+                  {isSubmitting
+                    ? mode === "add"
+                      ? "Creating..."
+                      : "Saving..."
+                    : mode === "add"
+                    ? "Create Project"
+                    : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Original form (hidden for now) */}
+          <div className="hidden">
+            <Form {...form}>
+              <form
+                onSubmit={(e) => {
+                  console.log("Form submit event triggered");
+                  form.handleSubmit(onSubmit)(e);
+                }}
+                className="space-y-4"
+              >
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter project name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter project description (optional)"
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Color</FormLabel>
+                      <FormControl>
+                        <div className="flex flex-wrap gap-3 py-2">
+                          {colorOptions.map((color) => (
+                            <button
+                              key={color.value}
+                              type="button"
+                              className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
+                                field.value === color.value
+                                  ? "ring-2 ring-offset-2 ring-primary scale-110"
+                                  : "hover:scale-110 border-border"
+                              )}
+                              style={{ backgroundColor: color.value }}
+                              onClick={() => field.onChange(color.value)}
+                              title={color.label}
+                              aria-label={`Select ${color.label} color`}
+                            >
+                              {field.value === color.value && (
+                                <CheckIcon className="h-5 w-5 text-white drop-shadow-sm" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Select a color for your project
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Project"
+        description="Are you sure you want to delete this project? This action cannot be undone and will also delete all tasks associated with this project."
+        onConfirm={handleDeleteProject}
+        isDeleting={isDeleting}
+      />
+    </>
   );
 }

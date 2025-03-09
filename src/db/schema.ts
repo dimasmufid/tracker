@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool, neonConfig } from "@neondatabase/serverless";
@@ -85,14 +86,24 @@ export const projects = pgTable("projects", {
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   color: text("color").notNull().default("#FFFFFF"),
-  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+  is_deleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   created_at: timestamp("created_at").notNull().defaultNow(),
-  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+  is_deleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const tasks = pgTable("tasks", {
@@ -105,7 +116,12 @@ export const tasks = pgTable("tasks", {
     .notNull()
     .references(() => activities.id, { onDelete: "cascade" }),
   created_at: timestamp("created_at").notNull().defaultNow(),
-  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+  is_deleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const taskRecords = pgTable("task_records", {
@@ -115,5 +131,10 @@ export const taskRecords = pgTable("task_records", {
     .references(() => tasks.id, { onDelete: "cascade" }),
   started_at: timestamp("started_at").notNull().defaultNow(),
   ended_at: timestamp("ended_at"),
-  user_id: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+  is_deleted: boolean("is_deleted").notNull().default(false),
 });

@@ -464,6 +464,24 @@ export default function TaskTracker({
     }
   }, [projects, activeTask, setActiveProjectColor]);
 
+  // Handle task deletion
+  const handleTaskDeleted = (taskId: number) => {
+    // Remove the task from the tasks list
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+
+    // If the deleted task is the active task, clear it
+    if (activeTask && activeTask.id === taskId) {
+      setActiveTask(null);
+      setActiveTaskId(null);
+      setActiveProjectColor("");
+    }
+
+    toast({
+      title: "Task deleted",
+      description: "The task has been deleted successfully.",
+    });
+  };
+
   return (
     <div className="flex flex-col md:flex-row grow bg-background">
       <div className="w-full md:w-1/2 p-2 md:p-4 flex">
@@ -489,6 +507,7 @@ export default function TaskTracker({
             onClearSelection={handleClearActiveTask}
             onAddTask={() => setIsAddTaskDialogOpen(true)}
             onEditTask={handleEditTask}
+            onTaskDeleted={handleTaskDeleted}
           />
         </div>
       </div>

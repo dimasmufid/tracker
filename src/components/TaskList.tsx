@@ -3,7 +3,6 @@
 import TaskItem from "./TaskItem";
 import { PlusCircleIcon, FolderIcon, ClockIcon, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { formatDuration, calculateDuration } from "@/utils/timeUtils";
 import { useMemo, useEffect, useState } from "react";
 import { ClientOnly } from "./ClientOnly";
@@ -52,6 +51,7 @@ type TaskListProps = {
   onClearSelection?: () => void;
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
+  onTaskDeleted?: (taskId: number) => void;
 };
 
 export default function TaskList({
@@ -64,6 +64,7 @@ export default function TaskList({
   onClearSelection,
   onAddTask,
   onEditTask,
+  onTaskDeleted,
 }: TaskListProps) {
   // Keep track of the previous active task ID to detect changes
   const [prevActiveTaskId, setPrevActiveTaskId] = useState<number | null>(null);
@@ -250,58 +251,32 @@ export default function TaskList({
                   >
                     <div className="flex items-center">
                       <span
-                        className="h-4 w-4 rounded-full mr-2 flex-shrink-0"
+                        className="h-3 w-3 rounded-full mr-2"
                         style={{ backgroundColor: project.color }}
                       ></span>
-                      <span className="font-semibold">{project.name}</span>
+                      <span>{project.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs font-normal flex items-center gap-1 ${
-                          tasksByProject[project.id]?.length === 0
-                            ? ""
-                            : `bg-${project.color}`
-                        }`}
-                      >
-                        <ClockIcon className="h-3 w-3" />
-                        <ClientOnly fallback="--:--:--">
-                          {formatDuration(projectTotalTime)}
-                        </ClientOnly>
-                      </Badge>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <ClockIcon className="h-3.5 w-3.5 mr-1.5" />
+                      <ClientOnly fallback="--:--:--">
+                        {formatDuration(projectTotalTime)}
+                      </ClientOnly>
                     </div>
                   </div>
                   <div className="p-2 space-y-2">
-                    {tasksByProject[project.id]?.length ? (
-                      tasksByProject[project.id].map((task) => {
-                        const taskTotalTime = calculateTaskTotalTime(task.id);
-                        const isActive = task.id === activeTaskId;
-
-                        return (
-                          <div
-                            key={task.id}
-                            className={`transition-all duration-500 ease-in-out ${
-                              isActive ? "relative z-10" : ""
-                            }`}
-                          >
-                            <TaskItem
-                              key={task.id}
-                              task={task}
-                              isActive={isActive}
-                              onSelect={onSelectTask}
-                              onClearSelection={onClearSelection}
-                              onEdit={onEditTask}
-                              activityName={getActivityName(task.activity_id)}
-                              totalTime={taskTotalTime}
-                            />
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-sm text-muted-foreground py-3 px-2 italic text-center">
-                        No tasks in this project
-                      </div>
-                    )}
+                    {tasksByProject[project.id]?.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        isActive={task.id === activeTaskId}
+                        onSelect={onSelectTask}
+                        onClearSelection={onClearSelection}
+                        onEdit={onEditTask}
+                        activityName={getActivityName(task.activity_id)}
+                        totalTime={calculateTaskTotalTime(task.id)}
+                        onTaskDeleted={onTaskDeleted}
+                      />
+                    ))}
                   </div>
                 </div>
               );

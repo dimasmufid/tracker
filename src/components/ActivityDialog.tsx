@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
+import { Trash2 } from "lucide-react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { deleteActivity } from "@/lib/actions";
+import { getCurrentUserId } from "@/lib/auth-utils";
 
 const formSchema = activityFormSchema.omit({ user_id: true });
 
@@ -41,6 +45,7 @@ interface ActivityDialogProps {
     data: ActivityFormValues
   ) => Promise<void>;
   mode: "add" | "edit";
+  onActivityDeleted?: () => void;
 }
 
 export function ActivityDialog({
@@ -49,8 +54,11 @@ export function ActivityDialog({
   activity,
   onSaveActivity,
   mode,
+  onActivityDeleted,
 }: ActivityDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,15 +83,9 @@ export function ActivityDialog({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
-      // Get the current user ID from the session
-      const session = await fetch("/api/auth/session").then((res) =>
-        res.json()
-      );
-      const userId = session?.user?.id;
 
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
+      // Get the user ID using the utility function
+      const userId = await getCurrentUserId();
 
       // Add user_id to the form values
       const formData: ActivityFormValues = {
@@ -116,48 +118,107 @@ export function ActivityDialog({
     }
   }
 
+  const handleDeleteActivity = async () => {
+    if (!activity) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteActivity(activity.id);
+
+      // Close both dialogs
+      setIsDeleteDialogOpen(false);
+      onOpenChange(false);
+
+      // Notify parent component
+      if (onActivityDeleted) {
+        onActivityDeleted();
+      }
+
+      toast({
+        title: "Activity deleted",
+        description: "The activity has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete activity. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === "add" ? "Add New Activity" : "Edit Activity"}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === "add"
-              ? "Create a new activity type for your tasks."
-              : "Make changes to your activity details."}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Activity Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter activity name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? mode === "add"
-                    ? "Creating..."
-                    : "Saving..."
-                  : mode === "add"
-                  ? "Create Activity"
-                  : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {mode === "add" ? "Add New Activity" : "Edit Activity"}
+            </DialogTitle>
+            <DialogDescription>
+              {mode === "add"
+                ? "Create a new activity type for your tasks."
+                : "Make changes to your activity details."}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Activity Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter activity name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="flex justify-between items-center">
+                {mode === "edit" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border-destructive text-destructive hover:bg-destructive/10"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    disabled={isSubmitting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                <div
+                  className={mode === "edit" ? "flex-1 flex justify-end" : ""}
+                >
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting
+                      ? mode === "add"
+                        ? "Creating..."
+                        : "Saving..."
+                      : mode === "add"
+                      ? "Create Activity"
+                      : "Save Changes"}
+                  </Button>
+                </div>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Activity"
+        description="Are you sure you want to delete this activity? This action cannot be undone and will also delete all tasks associated with this activity."
+        onConfirm={handleDeleteActivity}
+        isDeleting={isDeleting}
+      />
+    </>
   );
 }
