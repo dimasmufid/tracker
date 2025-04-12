@@ -219,29 +219,34 @@ export function ProjectDialog({
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Color</h3>
               <div className="flex flex-wrap gap-3 py-2">
-                {colorOptions.map((color) => (
-                  <button
-                    key={color.value}
-                    type="button"
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
-                      form.getValues().color === color.value
-                        ? "ring-2 ring-offset-2 ring-primary scale-110"
-                        : "hover:scale-110 border-border"
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    onClick={() => {
-                      console.log("Color selected:", color.value);
-                      form.setValue("color", color.value);
-                    }}
-                    title={color.label}
-                    aria-label={`Select ${color.label} color`}
-                  >
-                    {form.getValues().color === color.value && (
-                      <CheckIcon className="h-5 w-5 text-white drop-shadow-sm" />
-                    )}
-                  </button>
-                ))}
+                {colorOptions.map((color) => {
+                  const selectedColor = form.getValues().color;
+                  return (
+                    <button
+                      key={color.value}
+                      type="button"
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
+                        selectedColor === color.value
+                          ? "ring-2 ring-offset-2 ring-primary scale-110"
+                          : "hover:scale-110 border-border"
+                      )}
+                      style={{ backgroundColor: color.value }}
+                      onClick={() => {
+                        form.setValue("color", color.value, {
+                          shouldDirty: true,
+                        });
+                        form.trigger("color");
+                      }}
+                      title={color.label}
+                      aria-label={`Select ${color.label} color`}
+                    >
+                      {selectedColor === color.value && (
+                        <CheckIcon className="h-5 w-5 text-white drop-shadow-sm" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
