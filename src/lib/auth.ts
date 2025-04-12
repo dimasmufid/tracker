@@ -5,7 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
-
+import { redirect } from "next/navigation";
 // This is the server-side authentication configuration
 export const {
   handlers,
@@ -94,6 +94,9 @@ export const {
 // Helper function to get the current user ID
 export async function getCurrentUserId() {
   const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/sign-in");
+  }
   return session?.user?.id;
 }
 

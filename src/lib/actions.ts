@@ -14,7 +14,7 @@ import {
   softDeleteActivity,
   softDeleteTask,
 } from "@/services/taskService";
-import { getCurrentUserId } from "./auth-utils";
+import { getCurrentUserId } from "@/lib/auth";
 
 export async function addProject(data: ProjectFormValues) {
   try {
