@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { CheckIcon, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { deleteProject } from "@/lib/actions";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserId } from "@/lib/auth";
 
 // Predefined color options similar to Chrome's group colors
 const colorOptions = [

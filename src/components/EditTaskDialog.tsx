@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserId } from "@/lib/auth";
 
 const formSchema = taskFormSchema.omit({ user_id: true });
 

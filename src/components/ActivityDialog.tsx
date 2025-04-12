@@ -27,7 +27,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { deleteActivity } from "@/lib/actions";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserId } from "@/lib/auth";
 
 const formSchema = activityFormSchema.omit({ user_id: true });
 
