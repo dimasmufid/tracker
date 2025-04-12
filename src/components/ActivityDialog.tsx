@@ -27,9 +27,6 @@ import { toast } from "@/components/ui/use-toast";
 import { Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { deleteActivity } from "@/lib/actions";
-import { getCurrentUserId } from "@/lib/auth";
-
-const formSchema = activityFormSchema.omit({ user_id: true });
 
 type Activity = {
   id: number;
@@ -60,8 +57,8 @@ export function ActivityDialog({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof activityFormSchema>>({
+    resolver: zodResolver(activityFormSchema),
     defaultValues: {
       name: activity?.name || "",
     },
@@ -80,17 +77,12 @@ export function ActivityDialog({
     }
   }, [activity, form, mode]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof activityFormSchema>) {
     try {
       setIsSubmitting(true);
 
-      // Get the user ID using the utility function
-      const userId = await getCurrentUserId();
-
-      // Add user_id to the form values
       const formData: ActivityFormValues = {
         ...values,
-        user_id: userId,
       };
 
       await onSaveActivity(activity, formData);

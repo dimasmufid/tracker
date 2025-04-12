@@ -32,9 +32,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { getCurrentUserId } from "@/lib/auth";
-
-const formSchema = taskFormSchema.omit({ user_id: true });
 
 type Task = {
   id: number;
@@ -76,8 +73,8 @@ export function EditTaskDialog({
 }: EditTaskDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof taskFormSchema>>({
+    resolver: zodResolver(taskFormSchema),
     defaultValues: {
       name: task?.name || "",
       project_id: task?.project_id.toString() || "",
@@ -96,19 +93,13 @@ export function EditTaskDialog({
     }
   }, [task, form]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof taskFormSchema>) {
     if (!task) return;
 
     try {
       setIsSubmitting(true);
-
-      // Get the user ID using the utility function
-      const userId = await getCurrentUserId();
-
-      // Add user_id to the form values
       const formData: TaskFormValues = {
         ...values,
-        user_id: userId,
       };
 
       await onEditTask(task.id, formData);

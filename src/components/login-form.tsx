@@ -52,7 +52,6 @@ export function LoginForm() {
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -82,12 +81,12 @@ export function LoginForm() {
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link
+            {/* <Link
               href="/forgot-password"
               className="text-sm text-muted-foreground hover:text-primary"
             >
               Forgot password?
-            </Link>
+            </Link> */}
           </div>
           <Input
             id="password"

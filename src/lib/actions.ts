@@ -57,6 +57,7 @@ export async function editProject(id: number, data: ProjectFormValues) {
       name: data.name,
       description: data.description,
       color: data.color,
+      user_id: userId,
     };
     console.log("Project data to update:", projectData);
 

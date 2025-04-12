@@ -28,7 +28,6 @@ import { cn } from "@/lib/utils";
 import { CheckIcon, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { deleteProject } from "@/lib/actions";
-import { getCurrentUserId } from "@/lib/auth";
 
 // Predefined color options similar to Chrome's group colors
 const colorOptions = [
@@ -116,16 +115,11 @@ export function ProjectDialog({
     try {
       setIsSubmitting(true);
 
-      // Get the user ID using the utility function
-      const userId = await getCurrentUserId();
-      console.log("User ID from getCurrentUserId:", userId);
-
-      // Add user_id to the form values
+      // Remove the getCurrentUserId call and just pass the values
       const formData: ProjectFormValues = {
         ...values,
-        user_id: userId,
       };
-      console.log("Form data with user_id:", formData);
+      console.log("Form data:", formData);
 
       await onSaveProject(project, formData);
       onOpenChange(false);
@@ -291,16 +285,11 @@ export function ProjectDialog({
 
                       console.log("Debug form values:", values);
 
-                      // Get the user ID using the utility function
-                      const userId = await getCurrentUserId();
-                      console.log("User ID from getCurrentUserId:", userId);
-
-                      // Add user_id to the form values
+                      // Remove the getCurrentUserId call and just pass the values
                       const formData: ProjectFormValues = {
                         ...values,
-                        user_id: userId,
                       };
-                      console.log("Form data with user_id:", formData);
+                      console.log("Form data:", formData);
 
                       await onSaveProject(project, formData);
                       onOpenChange(false);

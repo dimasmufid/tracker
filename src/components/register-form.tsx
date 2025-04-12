@@ -92,7 +92,6 @@ export function RegisterForm() {
             : "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
