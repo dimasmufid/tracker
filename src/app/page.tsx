@@ -24,10 +24,13 @@ export default async function Home() {
 
   try {
     // Get all data from the database
-    let tasks = await getTasks();
+    const allTasks = await getTasks();
     let projects = await getProjects();
     const activities = await getActivities();
     const taskRecords = await getTaskRecords();
+
+    // Filter out tasks that are already marked as done
+    let tasks = allTasks.filter((task) => !task.is_done);
 
     // Get the active task, but handle potential errors
     let activeTask: Task | null = null;

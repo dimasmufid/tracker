@@ -122,6 +122,7 @@ export const tasks = pgTable("tasks", {
       onDelete: "cascade",
     }),
   is_deleted: boolean("is_deleted").notNull().default(false),
+  is_done: boolean("is_done").notNull().default(false),
 });
 
 export const taskRecords = pgTable("task_records", {

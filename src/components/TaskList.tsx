@@ -52,6 +52,7 @@ type TaskListProps = {
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
   onTaskDeleted?: (taskId: number) => void;
+  onMarkTaskAsDone?: (taskId: number) => void;
 };
 
 export default function TaskList({
@@ -65,6 +66,7 @@ export default function TaskList({
   onAddTask,
   onEditTask,
   onTaskDeleted,
+  onMarkTaskAsDone,
 }: TaskListProps) {
   // Keep track of the previous active task ID to detect changes
   const [prevActiveTaskId, setPrevActiveTaskId] = useState<number | null>(null);
@@ -268,13 +270,22 @@ export default function TaskList({
                       <TaskItem
                         key={task.id}
                         task={task}
-                        isActive={task.id === activeTaskId}
-                        onSelect={onSelectTask}
-                        onClearSelection={onClearSelection}
-                        onEdit={onEditTask}
                         activityName={getActivityName(task.activity_id)}
                         totalTime={calculateTaskTotalTime(task.id)}
-                        onTaskDeleted={onTaskDeleted}
+                        isActive={task.id === activeTaskId}
+                        onSelect={() => onSelectTask(task.id)}
+                        onClearSelection={onClearSelection}
+                        onEdit={() => onEditTask(task)}
+                        onTaskDeleted={
+                          onTaskDeleted
+                            ? () => onTaskDeleted(task.id)
+                            : undefined
+                        }
+                        onMarkAsDone={
+                          onMarkTaskAsDone
+                            ? () => onMarkTaskAsDone(task.id)
+                            : undefined
+                        }
                       />
                     ))}
                   </div>

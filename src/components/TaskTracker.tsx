@@ -464,6 +464,46 @@ export default function TaskTracker({
     }
   }, [projects, activeTask, setActiveProjectColor]);
 
+  // Handle marking a task as done
+  const handleMarkTaskAsDone = async (taskId: number) => {
+    console.log(`Attempting to mark task ${taskId} as done`);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/done`, {
+        method: "PATCH",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to mark task as done");
+      }
+
+      // Remove task from local state
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+
+      // If the done task was active, clear active state
+      if (activeTask && activeTask.id === taskId) {
+        setActiveTask(null);
+        setActiveTaskId(null);
+        setActiveProjectColor(null); // Reset theme color
+      }
+
+      toast({
+        title: "Task Completed",
+        description: "The task has been marked as done.",
+      });
+    } catch (error) {
+      console.error(`Error marking task ${taskId} as done:`, error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not mark task as done.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle task deletion
   const handleTaskDeleted = (taskId: number) => {
     // Remove the task from the tasks list
@@ -508,6 +548,7 @@ export default function TaskTracker({
             onAddTask={() => setIsAddTaskDialogOpen(true)}
             onEditTask={handleEditTask}
             onTaskDeleted={handleTaskDeleted}
+            onMarkTaskAsDone={handleMarkTaskAsDone}
           />
         </div>
       </div>

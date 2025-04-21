@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   PlayIcon,
   CheckCircleIcon,
+  CheckIcon,
   TagIcon,
   PencilIcon,
   ClockIcon,
@@ -34,6 +35,7 @@ type TaskItemProps = {
   activityName?: string;
   totalTime: number;
   onTaskDeleted?: (taskId: number) => void;
+  onMarkAsDone?: (taskId: number) => void;
 };
 
 export default function TaskItem({
@@ -45,6 +47,7 @@ export default function TaskItem({
   activityName,
   totalTime,
   onTaskDeleted,
+  onMarkAsDone,
 }: TaskItemProps) {
   const [wasActive, setWasActive] = useState(isActive);
   const [animateHighlight, setAnimateHighlight] = useState(false);
@@ -179,6 +182,21 @@ export default function TaskItem({
             <Trash2 className="h-3.5 w-3.5" />
             <span className="sr-only">Delete</span>
           </Button>
+
+          {onMarkAsDone && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkAsDone(task.id);
+              }}
+            >
+              <CheckIcon className="h-4 w-4" />
+              <span className="sr-only">Mark as Done</span>
+            </Button>
+          )}
 
           {isActive ? (
             <Button
