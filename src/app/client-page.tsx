@@ -108,23 +108,27 @@ export default function HomeClient({
   const handleAddProject = async (data: ProjectFormValues) => {
     try {
       console.log("handleAddProject called with data:", data);
-      await addProject(data);
+      const response = await addProject(data);
 
-      // Optimistically update the UI by adding a temporary project
-      // In a real app, you'd fetch the new project with its ID from the server
-      const newProject: Project = {
-        id: Math.floor(Math.random() * 1000) + 100, // Temporary ID
-        name: data.name,
-        description: data.description,
-        color: data.color,
-        created_at: Date.now(),
-      };
-      setProjects((prev) => [...prev, newProject]);
+      if (response.project) {
+        // Use the actual project data from the server response
+        const newProject: Project = {
+          id: response.project.id,
+          name: response.project.name,
+          description: response.project.description || undefined,
+          color: response.project.color,
+          created_at:
+            response.project.created_at instanceof Date
+              ? response.project.created_at.getTime()
+              : Number(response.project.created_at),
+        };
+        setProjects((prev) => [...prev, newProject]);
 
-      toast({
-        title: "Project created",
-        description: "Your project has been created successfully.",
-      });
+        toast({
+          title: "Project created",
+          description: "Your project has been created successfully.",
+        });
+      }
     } catch (error) {
       console.error("Failed to add project:", error);
       toast({

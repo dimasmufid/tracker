@@ -33,11 +33,14 @@ export async function addProject(data: ProjectFormValues) {
     };
     console.log("Project data to insert:", projectData);
 
-    // Insert the project
-    await db.insert(schema.projects).values(projectData);
+    // Insert the project and return the result
+    const result = await db
+      .insert(schema.projects)
+      .values(projectData)
+      .returning();
     revalidatePath("/");
 
-    return { success: true };
+    return { success: true, project: result[0] };
   } catch (error) {
     console.error("Error adding project:", error);
     throw error;
