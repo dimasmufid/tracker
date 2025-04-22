@@ -17,6 +17,7 @@ import { normalizeTimestamp } from "@/utils/timeUtils";
 import { toast } from "@/components/ui/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TaskFormValues } from "@/lib/schemas";
+import { markTaskAsDone } from "@/lib/actions";
 
 // Define types that match the database schema
 interface DbTask {
@@ -468,13 +469,10 @@ export default function TaskTracker({
   const handleMarkTaskAsDone = async (taskId: number) => {
     console.log(`Attempting to mark task ${taskId} as done`);
     try {
-      const response = await fetch(`/api/tasks/${taskId}/done`, {
-        method: "PATCH",
-      });
+      const response = await markTaskAsDone(taskId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to mark task as done");
+      if (!response.success) {
+        throw new Error("Failed to mark task as done");
       }
 
       // Remove task from local state

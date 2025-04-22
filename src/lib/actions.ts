@@ -235,3 +235,22 @@ export async function deleteTask(id: number) {
     throw error;
   }
 }
+
+export async function markTaskAsDone(id: number) {
+  try {
+    // Get the current user ID to ensure the user is authenticated
+    const userId = await getCurrentUserId();
+
+    // Update the task to set is_done to true
+    await db
+      .update(schema.tasks)
+      .set({ is_done: true })
+      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.user_id, userId)));
+    revalidatePath("/");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking task as done:", error);
+    throw error;
+  }
+}
